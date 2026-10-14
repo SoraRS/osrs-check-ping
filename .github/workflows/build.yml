@@ -1,0 +1,72 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test portable monitoring core
+        run: dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release --logger trx
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: core-test-results
+          path: tests/OsrsCheckPing.Core.Tests/TestResults/*.trx
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build solution
+        run: dotnet build --configuration Release
+      - name: Test monitoring core on Windows
+        run: dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release --no-build
+      - name: Test Windows interface
+        run: dotnet test tests/OsrsCheckPing.Desktop.Tests --configuration Release --no-build
+      - name: Publish Windows executable
+        run: dotnet publish src/OsrsCheckPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
+      - name: Verify single executable output
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem artifacts/win-x64 -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsCheckPing.exe') {
+            throw 'Expected exactly one file: OsrsCheckPing.exe'
+          }
+      - name: Smoke test published executable
+        shell: pwsh
+        run: |
+          $app = Start-Process artifacts/win-x64/OsrsCheckPing.exe -PassThru
+          try {
+            if (-not $app.WaitForInputIdle(15000)) { throw 'Application did not become responsive' }
+            $app.Refresh()
+            if ($app.HasExited -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
+              throw 'Application did not open its main window'
+            }
+            if (-not $app.CloseMainWindow()) { throw 'Could not close the application' }
+            if (-not $app.WaitForExit(15000)) { throw 'Application did not shut down cleanly' }
+            if ($app.ExitCode -ne 0) { throw "Application exited with code $($app.ExitCode)" }
+          } finally {
+            if (-not $app.HasExited) { $app.Kill() }
+          }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OsrsCheckPing-win-x64
+          path: artifacts/win-x64/OsrsCheckPing.exe
+          if-no-files-found: error
