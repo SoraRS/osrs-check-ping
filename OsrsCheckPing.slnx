@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OsrsCheckPing.Core/OsrsCheckPing.Core.csproj" />
+    <Project Path="src/OsrsCheckPing.Desktop/OsrsCheckPing.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OsrsCheckPing.Core.Tests/OsrsCheckPing.Core.Tests.csproj" />
+    <Project Path="tests/OsrsCheckPing.Desktop.Tests/OsrsCheckPing.Desktop.Tests.csproj" />
+  </Folder>
+</Solution>
