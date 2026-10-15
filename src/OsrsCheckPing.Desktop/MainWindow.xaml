@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsCheckPing.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" x:Class="OsrsCheckPing.Desktop.MainWindow" UseLayoutRounding="True" SnapsToDevicePixels="True" Title="OSRS Check Ping" Width="1280" Height="850" MinWidth="420" MinHeight="320" WindowState="Maximized" Background="#151B1E" Foreground="#EFE8DA" FontFamily="Segoe UI" Icon="Assets/app.ico" WindowStyle="None" ResizeMode="CanResize" Loaded="OnLoaded" Closing="OnClosing" StateChanged="OnStateChanged" SourceInitialized="OnSourceInitialized">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsCheckPing.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" x:Class="OsrsCheckPing.Desktop.MainWindow" UseLayoutRounding="True" SnapsToDevicePixels="True" Title="OSRS Check Ping" Width="1280" Height="850" MinWidth="420" MinHeight="320" WindowState="Maximized" Background="#151B1E" Foreground="#EFE8DA" FontFamily="Segoe UI" Icon="{StaticResource AppMark}" WindowStyle="None" ResizeMode="CanResize" Loaded="OnLoaded" Closing="OnClosing" StateChanged="OnStateChanged" SourceInitialized="OnSourceInitialized">
   <shell:WindowChrome.WindowChrome>
     <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="7" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
   </shell:WindowChrome.WindowChrome>
@@ -25,7 +25,7 @@
       <Border Background="#CB151B1E" BorderBrush="#65583F" BorderThickness="0,0,0,1">
         <Grid>
           <StackPanel Orientation="Horizontal" Margin="18,0">
-            <Image Source="Assets/app.ico" Width="21" Height="21"/>
+            <Image Source="{StaticResource AppMark}" Width="21" Height="21"/>
             <TextBlock Text="OSRS CHECK PING" FontSize="11" Foreground="#C6BDAA" VerticalAlignment="Center" Margin="10,0"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True">
@@ -58,7 +58,7 @@
               <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <Image Source="Assets/app.ico" Width="52" Height="52" Margin="0,0,16,0"/>
+              <Image Source="{StaticResource AppMark}" Width="52" Height="52" Margin="0,0,16,0"/>
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="OSRS" FontSize="13" Foreground="{StaticResource Gold}"/>
                 <TextBlock Text="Check Ping" FontFamily="Georgia" FontSize="30"/>
@@ -227,7 +227,7 @@
               <TabItem Header="About">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                   <StackPanel MaxWidth="700" HorizontalAlignment="Left">
-                    <Image Source="Assets/app.ico" Width="76" Height="76" HorizontalAlignment="Left" Margin="0,0,0,20"/>
+                    <Image Source="{StaticResource AppMark}" Width="76" Height="76" HorizontalAlignment="Left" Margin="0,0,0,20"/>
                     <TextBlock Text="OSRS Check Ping" Style="{StaticResource Heading}"/>
                     <TextBlock Text="{Binding Version}" Foreground="{StaticResource Gold}" Margin="0,0,0,24"/>
                     <TextBlock Text="Find a world that feels closer." FontFamily="Georgia" FontSize="22" Margin="0,0,0,14"/>

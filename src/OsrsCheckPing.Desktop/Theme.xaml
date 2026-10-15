@@ -1,5 +1,27 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsCheckPing.Desktop">
   <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
+  <!-- The ICO is for Windows shell resources. Use vectors inside WPF to avoid
+       selecting its smallest bitmap frame and scaling a 16px logo up. -->
+  <DrawingImage x:Key="AppMark">
+    <DrawingImage.Drawing>
+      <DrawingGroup>
+        <DrawingGroup.Children>
+          <GeometryDrawing Geometry="M64,8 L192,8 Q248,8 248,64 L248,192 Q248,248 192,248 L64,248 Q8,248 8,192 L8,64 Q8,8 64,8 Z">
+            <GeometryDrawing.Brush><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#332D25"/><GradientStop Offset="1" Color="#101518"/></LinearGradientBrush></GeometryDrawing.Brush>
+            <GeometryDrawing.Pen><Pen Brush="#B38E52" Thickness="6"/></GeometryDrawing.Pen>
+          </GeometryDrawing>
+          <GeometryDrawing Geometry="M128,31 L207,77 L207,179 L128,225 L49,179 L49,77 Z">
+            <GeometryDrawing.Pen><Pen Brush="#C49B55" Thickness="5"/></GeometryDrawing.Pen>
+          </GeometryDrawing>
+          <GeometryDrawing Geometry="M128,48 L144,106 L198,128 L144,145 L128,207 L111,145 L58,128 L111,106 Z">
+            <GeometryDrawing.Brush><LinearGradientBrush StartPoint="0,0" EndPoint="0.8,1"><GradientStop Color="#FFE2A0"/><GradientStop Offset="0.5" Color="#C49B55"/><GradientStop Offset="1" Color="#73502C"/></LinearGradientBrush></GeometryDrawing.Brush>
+          </GeometryDrawing>
+          <GeometryDrawing Brush="#131C1B"><GeometryDrawing.Geometry><EllipseGeometry Center="128,128" RadiusX="22" RadiusY="22"/></GeometryDrawing.Geometry><GeometryDrawing.Pen><Pen Brush="#FFE2A0" Thickness="4"/></GeometryDrawing.Pen></GeometryDrawing>
+          <GeometryDrawing Brush="#91CEAB"><GeometryDrawing.Geometry><EllipseGeometry Center="128,128" RadiusX="8" RadiusY="8"/></GeometryDrawing.Geometry></GeometryDrawing>
+        </DrawingGroup.Children>
+      </DrawingGroup>
+    </DrawingImage.Drawing>
+  </DrawingImage>
   <SolidColorBrush x:Key="Ink" Color="#EFE8DA"/>
   <SolidColorBrush x:Key="Muted" Color="#B2ADA4"/>
   <SolidColorBrush x:Key="Gold" Color="#D8B575"/>

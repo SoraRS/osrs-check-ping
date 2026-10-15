@@ -38,7 +38,7 @@ Settings and the cached catalogue remain in `%LOCALAPPDATA%\OsrsCheckPing`. A mi
 
 ## CI and previews
 
-**Build and test** runs core tests on Linux and Windows, WPF tests on Windows, single-file publishing, and a startup/clean-exit smoke test. It retains the repeated `Process.Refresh()`/window-handle/title wait that fixed startup detection.
+**Build and test** establishes a 1920×1080 runner desktop before launching WPF tests, runs core tests on Linux and Windows, then verifies single-file publishing and startup/clean exit. WPF constrains windows to the available desktop; changing only the test window size on a smaller runner cannot validate the 1080p baseline. It retains the repeated `Process.Refresh()`/window-handle/title wait that fixed startup detection.
 
 The **Windows-interface-previews** artifact contains deterministic dashboard and all three settings tabs at baseline, compact, and scaled logical sizes. These are actual WPF renders using fixture data; the running app uses real probes. A **Signed release candidate** workflow reuses these checks, then requires the configured protected environment and SignPath approval. See [signing setup](SIGNING.md).
 

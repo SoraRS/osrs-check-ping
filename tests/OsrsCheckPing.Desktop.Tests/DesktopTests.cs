@@ -36,6 +36,15 @@ public sealed class DesktopTests
         while (!condition()) { if (DateTime.UtcNow > deadline) throw new TimeoutException("WPF condition was not met"); await Task.Delay(30); }
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
     }
+    private static async Task ResizeAsync(MainWindow window, double width, double height)
+    {
+        window.WindowState = WindowState.Normal;
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        window.Width = width; window.Height = height;
+        await UntilAsync(() => Math.Abs(window.ActualWidth - width) < 1 && Math.Abs(window.ActualHeight - height) < 1);
+        window.UpdateLayout();
+    }
+
     private static Harness Samples()
     {
         var h = new Harness();
@@ -74,8 +83,7 @@ public sealed class DesktopTests
         {
             await UntilAsync(() => main.Model.Tracked.Count == 20);
             Assert.Equal(WindowState.Maximized, main.WindowState);
-            main.WindowState = WindowState.Normal; main.Width = 1920; main.Height = 1040;
-            main.UpdateLayout(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            await ResizeAsync(main, 1920, 1040);
             Assert.Equal(5, main.ColumnCount);
             Assert.Equal(5, main.Model.Favorites.Count); Assert.Equal(25, main.Model.Snapshot.LiveCount);
             var scroll = (ScrollViewer)main.FindName("DashboardScroll");
@@ -115,7 +123,7 @@ public sealed class DesktopTests
             main.Model.BackToWorlds.Execute(null); Assert.False(main.Model.ShowSettings);
             foreach (var (width, height, scale) in new[] { (1366d, 728d, 1d), (1280d, 693d, 1.5), (960d, 520d, 2d), (683d, 384d, 2d), (480d, 640d, 1d) })
             {
-                main.Width = width; main.Height = height; main.UpdateLayout();
+                await ResizeAsync(main, width, height);
                 Preview(main, $"dashboard-{width}-{scale}.png", scale);
                 Assert.InRange(main.ColumnCount, 1, 5);
                 main.Model.ShowSettings = true;
