@@ -75,24 +75,26 @@ public partial class MainWindow : Window
             var dpi = VisualTreeHelper.GetDpi(this);
             var screen = Forms.Screen.FromRectangle(new System.Drawing.Rectangle(placement.X, placement.Y, placement.Width, placement.Height));
             var area = screen.WorkingArea;
-            double width = Math.Clamp(placement.Width / dpi.DpiScaleX, MinWidth, Math.Max(MinWidth, area.Width / dpi.DpiScaleX));
-            double height = Math.Clamp(placement.Height / dpi.DpiScaleY, MinHeight, Math.Max(MinHeight, area.Height / dpi.DpiScaleY));
+            double availableWidth = area.Width / dpi.DpiScaleX, availableHeight = area.Height / dpi.DpiScaleY;
+            MinWidth = Math.Min(420, availableWidth); MinHeight = Math.Min(320, availableHeight);
+            double width = Math.Clamp(placement.Width / dpi.DpiScaleX, MinWidth, availableWidth);
+            double height = Math.Clamp(placement.Height / dpi.DpiScaleY, MinHeight, availableHeight);
             Width = width; Height = height;
-            Left = Math.Clamp(placement.X / dpi.DpiScaleX, area.Left / dpi.DpiScaleX, area.Right / dpi.DpiScaleX - width);
-            Top = Math.Clamp(placement.Y / dpi.DpiScaleY, area.Top / dpi.DpiScaleY, area.Bottom / dpi.DpiScaleY - height);
+            Left = area.Left / dpi.DpiScaleX + Math.Clamp((placement.X - area.Left) / dpi.DpiScaleX, 0, Math.Max(0, availableWidth - width));
+            Top = area.Top / dpi.DpiScaleY + Math.Clamp((placement.Y - area.Top) / dpi.DpiScaleY, 0, Math.Max(0, availableHeight - height));
         }
         WindowState = WindowState.Maximized;
     }
 
     private void UpdateLayoutDensity()
     {
-        ColumnCount = Math.Clamp((int)((ActualWidth - 64) / 290), 1, 5);
+        ColumnCount = Math.Clamp((int)((ActualWidth - 48) / 300), 1, 5);
         bool narrow = ActualWidth < 850;
         System.Windows.Controls.Grid.SetRow(Metrics, narrow ? 1 : 0);
         System.Windows.Controls.Grid.SetColumn(Metrics, narrow ? 0 : 1);
         System.Windows.Controls.Grid.SetColumnSpan(Metrics, narrow ? 3 : 1);
         Metrics.Margin = narrow ? new Thickness(6, 8, 0, 8) : new Thickness(24, 0, 24, 0);
-        DashboardHeaderRows.Height = new GridLength(narrow ? 154 : 96);
+        DashboardHeaderRows.Height = new GridLength(narrow ? 130 : 78);
     }
 
     private void GearEnter(object sender, MouseEventArgs args) => RotateGear(90);

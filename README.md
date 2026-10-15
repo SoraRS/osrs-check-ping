@@ -11,7 +11,7 @@ See your connection latency to Old School RuneScape worlds, keep your favorites 
 
 **To download a testing build:** sign into GitHub, open [Build and test](https://github.com/SoraRS/osrs-check-ping/actions/workflows/build.yml), and choose the latest successful run for **main**. Scroll to **Artifacts** and download **OsrsCheckPing-win-x64**, then extract its ZIP. The interface previews artifact contains pictures, rather than the application. [GitHub's download guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) explains the sign-in and download steps.
 
-The card interface described here is **version 1.1.0 or newer**; check **Settings → About**. An older workflow run contains an older executable, even if a newer build is currently running. Testing builds may be unsigned.
+The compact card interface described here is **version 1.2.0 or newer**; check **Settings → About**. An older workflow run contains an older executable, even if a newer build is currently running. Testing builds may be unsigned.
 
 ## Updating an older copy
 
@@ -21,20 +21,20 @@ Downloading a new build does not replace other copies automatically. If you stil
 
 ## Read your world cards
 
-The dashboard shows up to **20 eligible worlds**, plus **five pinned favorites** in their own section. Automatic selection favors the lowest pings at or below **30 ms** by default. Both sections display worlds by number, so a ping change does not shuffle the cards.
+The dashboard shows up to **20 eligible worlds**, plus **five favorites** in their own section. Automatic selection favors the lowest pings at or below **30 ms** by default. Both sections display worlds by number, so a ping change does not shuffle the cards.
 
 | On the card | What it means |
 | --- | --- |
 | Country flag | The world's region; a globe is used when the region is unknown. |
 | Filled gold star | Members world. |
 | Outlined gold star | Free-to-play world. |
-| Pin | One of your always-tracked favorites. |
-| Activity symbol and name | The world's activity; unfamiliar activities use a generic symbol. Hover to read a long activity name. |
-| Number in ms and five signal bars | Your latest network round-trip time. Lower is better. |
+| Red heart | One of your always-tracked favorites. Click the heart to add or remove a favorite. |
+| Activity symbol and name | Genuine OSRS skill and boss sprites identify supported activities. Total-level worlds use the experience bar graph; unfamiliar activities keep a generic icon. Hover for long names. |
+| Number in ms and five signal bars beside the world number | Your latest network round-trip time. Lower is better. |
 | Red world/activity text | A main-character PvP, High Risk, or Bounty Hunter warning. Hover for the reason and read the game's warning before entering. |
 | Timeout, unreachable, or unavailable | A usable reading could not be obtained, or a saved favorite is missing from the catalogue. |
 
-Live worlds update every **five seconds** by default. Other worlds stay hidden and receive no regular live checks. Every **five minutes**, a background review checks the hidden worlds and updates the selection. No countdown or manual refresh is needed to keep that review running.
+Live worlds update every **five seconds** by default. Other worlds stay hidden and receive no regular live checks. Every **five minutes**, a background review checks the hidden worlds and updates the selection. No countdown or manual refresh is needed to keep that review running. Both world views use compact grids over a translucent surface, leaving the landscape visible. Hovering adds a soft animated glow, and hearts respond when enabled; movement follows Windows' animation preference.
 
 Ping measures your network connection, **not server ticks**. A low reading does not guarantee a lag-free game, and an ICMP timeout does not necessarily mean a world is offline.
 
@@ -42,19 +42,19 @@ Ping measures your network connection, **not server ticks**. A low reading does 
 
 Open the **gear** or press **Ctrl+,**. Settings replaces the dashboard inside the same window. Select **Worlds** or press **Esc** to return.
 
-- **World tracking:** search by world number, country, or activity. Turn on **Browse hidden worlds** to manage the rest of the catalogue; browsing alone sends no probes. **Track** changes a world for this session. Manually enabled worlds take priority within the 20 ordinary slots. **Reset session choices** returns to automatic selection.
-- **Pin:** save up to five favorites. They use separate slots and keep being checked through high latency and failures. Their Track checkbox stays checked and locked while pinned. Unpin one before adding a sixth. Unpinning restores the underlying tracking choice.
-- **Check connection:** check every world again. Use this after changing the cutoff if you want to find newly eligible worlds immediately. Your pins and session choices survive the scan. Hidden-world readings are labeled **Scan result**.
+- **World tracking:** search by world number, country, or activity. Turn on **Browse hidden worlds** to manage the rest of the catalogue; browsing alone sends no probes. Use the **power icon** to turn tracking on or off for this session. Inactive cards fade; hovering makes their controls clearer. Manually enabled worlds take priority within the 20 ordinary slots. **Reset session choices** returns to automatic selection.
+- **Heart:** save up to five favorites. A red heart means always tracked; a faded heart is available to add. Favorites use separate slots and keep being checked through high latency and failures. Their power control stays on and locked while favorited. Remove a favorite before adding a sixth. Removing its heart restores the underlying session or automatic choice.
+- **Check connection:** check every world again. Use this after changing the cutoff if you want to find newly eligible worlds immediately. Your favorites and session choices survive the scan. Hidden-world readings are labeled **Scan result**.
 - **Application:** change the latency cutoff, refresh interval, always-on-top, or tray options, then select **Apply settings**. Tray options and always-on-top start disabled. When close-to-tray is enabled, use the tray menu's **Exit** command to quit fully.
 - **About:** find the version, project and support links, privacy information, and license.
 
-Ordinary worlds leave the live selection after one minute's worth of consecutive slow or failed readings—12 at the default interval. A good reading resets that count. They can return at the next background review, through **Check connection**, or when manually enabled. Pins are exempt from removal. Session tracking choices reset on exit; pins and application preferences are saved.
+Ordinary worlds leave the live selection after one minute's worth of consecutive slow or failed readings—12 at the default interval. A good reading resets that count. They can return at the next background review, through **Check connection**, or when manually enabled. Favorites are exempt from removal. Session tracking choices reset on exit; favorites and application preferences are saved.
 
 ## Common problems
 
-**I still see the old interface.** Fully exit any older copy, download the application artifact from the correct successful build, and launch the extracted file directly. Check **About** for version 1.1.0 or newer and update your shortcut.
+**I still see the old interface.** Fully exit any older copy, download the application artifact from the correct successful build, and launch the extracted file directly. Check **About** for version 1.2.0 or newer and update your shortcut.
 
-**No ordinary worlds appear.** Open settings to check progress or an error notice. The default 30 ms cutoff may be too low for your location. Raise it in **Application**, select **Apply settings**, then use **Check connection**. You can also pin a world regardless of its ping.
+**No ordinary worlds appear.** Open settings to check progress or an error notice. The default 30 ms cutoff may be too low for your location. Raise it in **Application**, select **Apply settings**, then use **Check connection**. You can also favorite a world regardless of its ping.
 
 **Everything times out.** Check your connection, VPN, firewall, and network rules. Some networks block ICMP even when the game works. Try another network before assuming every world is offline; administrator access is not normally required.
 
@@ -72,8 +72,8 @@ Ordinary worlds leave the live selection after one minute's worth of consecutive
 
 ## Privacy and help
 
-Preferences, pins, restored window placement, and the last world catalogue are saved locally. The app downloads Jagex's public catalogue and probes its supplied world hosts. There is no game account login, analytics, or saved latency history. Read [Privacy](docs/PRIVACY.md) for details.
+Preferences, favorites, restored window placement, and the last world catalogue are saved locally. The app downloads Jagex's public catalogue and probes its supplied world hosts. There is no game account login, analytics, or saved latency history. Read [Privacy](docs/PRIVACY.md) for details.
 
 [Report a problem](https://github.com/SoraRS/osrs-check-ping/issues) with your app version, Windows version, display scaling, and what happened. Build instructions, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
 
-[Apache License 2.0](LICENSE). Independent software, not affiliated with or endorsed by Jagex.
+Application code and original artwork: [Apache License 2.0](LICENSE). OSRS sprites: © Jagex Ltd.; [sources and credits](src/OsrsCheckPing.Desktop/Assets/Osrs/SOURCES.md). Independent software, not affiliated with or endorsed by Jagex.

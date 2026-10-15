@@ -1,5 +1,9 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
+using System.Windows.Input;
 using OsrsCheckPing.Core;
 
 namespace OsrsCheckPing.Desktop;
@@ -120,6 +124,39 @@ public sealed class ActivityGlyph : FrameworkElement
 // Expose cards as read-only groups to assistive technology without introducing selection or focus.
 public sealed class WorldCardSurface : System.Windows.Controls.Border
 {
+    private readonly DropShadowEffect _glow = new() { Color = Color.FromRgb(216, 181, 117), BlurRadius = 14, ShadowDepth = 0, Opacity = 0 };
+    private readonly TranslateTransform _lift = new();
+    public WorldCardSurface()
+    {
+        Effect = _glow; RenderTransform = _lift;
+        Loaded += (_, _) => SystemParameters.StaticPropertyChanged += OnMotionPreferenceChanged;
+        Unloaded += (_, _) => { SystemParameters.StaticPropertyChanged -= OnMotionPreferenceChanged; ResetMotion(); };
+    }
+    protected override void OnMouseEnter(MouseEventArgs args)
+    {
+        base.OnMouseEnter(args);
+        ResetMotion();
+        if (!Motion.CanAnimate(this)) { _glow.Opacity = .24; return; }
+        _glow.BeginAnimation(DropShadowEffect.OpacityProperty, new DoubleAnimation(.12, .32, TimeSpan.FromMilliseconds(900))
+        { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase() });
+        _lift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-1.5, TimeSpan.FromMilliseconds(180)));
+    }
+    protected override void OnMouseLeave(MouseEventArgs args)
+    {
+        base.OnMouseLeave(args);
+        if (!Motion.CanAnimate(this)) { ResetMotion(); return; }
+        _glow.BeginAnimation(DropShadowEffect.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(180)));
+        _lift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(180)));
+    }
+    private void OnMotionPreferenceChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(SystemParameters.ClientAreaAnimation) && !SystemParameters.ClientAreaAnimation) ResetMotion();
+    }
+    internal void ResetMotion()
+    {
+        _glow.BeginAnimation(DropShadowEffect.OpacityProperty, null); _glow.Opacity = 0;
+        _lift.BeginAnimation(TranslateTransform.YProperty, null); _lift.Y = 0;
+    }
     protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new CardPeer(this);
     private sealed class CardPeer(WorldCardSurface owner) : System.Windows.Automation.Peers.FrameworkElementAutomationPeer(owner)
     {

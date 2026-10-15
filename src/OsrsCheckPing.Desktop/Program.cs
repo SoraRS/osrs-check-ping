@@ -14,7 +14,7 @@ internal static class Program
             Source = new Uri("/OsrsCheckPing;component/Theme.xaml", UriKind.Relative)
         });
         using var http = new HttpClient();
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("OsrsCheckPing/1.1");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("OsrsCheckPing/1.2");
         var engine = new MonitoringEngine(new WorldCatalogueClient(http), new IcmpLatencyProbe(),
             new JsonSettingsStore(JsonSettingsStore.DefaultDirectory));
         application.Run(new MainWindow(engine));

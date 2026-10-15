@@ -7,17 +7,43 @@
       <DrawingGroup>
         <DrawingGroup.Children>
           <GeometryDrawing Geometry="M64,8 L192,8 Q248,8 248,64 L248,192 Q248,248 192,248 L64,248 Q8,248 8,192 L8,64 Q8,8 64,8 Z">
-            <GeometryDrawing.Brush><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#332D25"/><GradientStop Offset="1" Color="#101518"/></LinearGradientBrush></GeometryDrawing.Brush>
-            <GeometryDrawing.Pen><Pen Brush="#B38E52" Thickness="6"/></GeometryDrawing.Pen>
+            <GeometryDrawing.Brush>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#332D25"/>
+                <GradientStop Offset="1" Color="#101518"/>
+              </LinearGradientBrush>
+            </GeometryDrawing.Brush>
+            <GeometryDrawing.Pen>
+              <Pen Brush="#B38E52" Thickness="6"/>
+            </GeometryDrawing.Pen>
           </GeometryDrawing>
           <GeometryDrawing Geometry="M128,31 L207,77 L207,179 L128,225 L49,179 L49,77 Z">
-            <GeometryDrawing.Pen><Pen Brush="#C49B55" Thickness="5"/></GeometryDrawing.Pen>
+            <GeometryDrawing.Pen>
+              <Pen Brush="#C49B55" Thickness="5"/>
+            </GeometryDrawing.Pen>
           </GeometryDrawing>
           <GeometryDrawing Geometry="M128,48 L144,106 L198,128 L144,145 L128,207 L111,145 L58,128 L111,106 Z">
-            <GeometryDrawing.Brush><LinearGradientBrush StartPoint="0,0" EndPoint="0.8,1"><GradientStop Color="#FFE2A0"/><GradientStop Offset="0.5" Color="#C49B55"/><GradientStop Offset="1" Color="#73502C"/></LinearGradientBrush></GeometryDrawing.Brush>
+            <GeometryDrawing.Brush>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="0.8,1">
+                <GradientStop Color="#FFE2A0"/>
+                <GradientStop Offset="0.5" Color="#C49B55"/>
+                <GradientStop Offset="1" Color="#73502C"/>
+              </LinearGradientBrush>
+            </GeometryDrawing.Brush>
           </GeometryDrawing>
-          <GeometryDrawing Brush="#131C1B"><GeometryDrawing.Geometry><EllipseGeometry Center="128,128" RadiusX="22" RadiusY="22"/></GeometryDrawing.Geometry><GeometryDrawing.Pen><Pen Brush="#FFE2A0" Thickness="4"/></GeometryDrawing.Pen></GeometryDrawing>
-          <GeometryDrawing Brush="#91CEAB"><GeometryDrawing.Geometry><EllipseGeometry Center="128,128" RadiusX="8" RadiusY="8"/></GeometryDrawing.Geometry></GeometryDrawing>
+          <GeometryDrawing Brush="#131C1B">
+            <GeometryDrawing.Geometry>
+              <EllipseGeometry Center="128,128" RadiusX="22" RadiusY="22"/>
+            </GeometryDrawing.Geometry>
+            <GeometryDrawing.Pen>
+              <Pen Brush="#FFE2A0" Thickness="4"/>
+            </GeometryDrawing.Pen>
+          </GeometryDrawing>
+          <GeometryDrawing Brush="#91CEAB">
+            <GeometryDrawing.Geometry>
+              <EllipseGeometry Center="128,128" RadiusX="8" RadiusY="8"/>
+            </GeometryDrawing.Geometry>
+          </GeometryDrawing>
         </DrawingGroup.Children>
       </DrawingGroup>
     </DrawingImage.Drawing>
@@ -198,7 +224,9 @@
   <Style x:Key="DangerText" TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource Ink}"/>
     <Style.Triggers>
-      <DataTrigger Binding="{Binding IsDangerous}" Value="True"><Setter Property="Foreground" Value="#FF9690"/></DataTrigger>
+      <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+        <Setter Property="Foreground" Value="#FF9690"/>
+      </DataTrigger>
     </Style.Triggers>
   </Style>
   <Style x:Key="MemberStar" TargetType="Path">
@@ -218,58 +246,126 @@
       </DataTrigger>
     </Style.Triggers>
   </Style>
+  <Style x:Key="WorldToggle" TargetType="ToggleButton">
+    <Setter Property="Width" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Foreground" Value="#92948C"/>
+    <Setter Property="Opacity" Value="0.6"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+    <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+    <Setter Property="local:Motion.PopOnCheck" Value="True"/>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Opacity" Value="1"/>
+      </Trigger>
+      <Trigger Property="IsKeyboardFocused" Value="True">
+        <Setter Property="Opacity" Value="1"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="FavoriteToggle" TargetType="ToggleButton" BasedOn="{StaticResource WorldToggle}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="Transparent" CornerRadius="4">
+            <Path Width="14" Height="14" Stretch="Uniform" Fill="{TemplateBinding Foreground}" Data="M12,21 C9,18 1,13 1,7 C1,0 9,-1 12,5 C15,-1 23,0 23,7 C23,13 15,18 12,21 Z"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Foreground" Value="#F27D8C"/>
+        <Setter Property="Opacity" Value="1"/>
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Foreground" Value="#F3ACB5"/>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.35"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="TrackingToggle" TargetType="ToggleButton" BasedOn="{StaticResource WorldToggle}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="Transparent" CornerRadius="4">
+            <Path Width="14" Height="16" Stretch="Uniform" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M12,2 L12,12 M6,5 A9,9 0 1 0 18,5"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Foreground" Value="#A9DFBE"/>
+        <Setter Property="Opacity" Value="1"/>
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Foreground" Value="#C9E9D5"/>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.5"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="ScrollPage" TargetType="RepeatButton">
+    <Setter Property="Focusable" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RepeatButton">
+          <Border Background="Transparent"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="Thumb">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Border x:Name="Handle" Background="#84765E" CornerRadius="3" Margin="2,0"/>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Handle" Property="Background" Value="#D8B575"/>
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+              <Setter TargetName="Handle" Property="Background" Value="#E5C995"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="ScrollBar">
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="MinHeight" Value="20"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollBar">
+          <Grid Background="#32121B20">
+            <Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="Vertical" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" ViewportSize="{TemplateBinding ViewportSize}" Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource ScrollPage}"/>
+              </Track.DecreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb MinHeight="24"/>
+              </Track.Thumb>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource ScrollPage}"/>
+              </Track.IncreaseRepeatButton>
+            </Track>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <DataTemplate x:Key="WorldCard" DataType="{x:Type local:WorldCardModel}">
-    <local:WorldCardSurface x:Name="Card" Height="130" Margin="6" CornerRadius="8" BorderBrush="#665B4A" BorderThickness="1" AutomationProperties.Name="{Binding AccessibleDescription}" ToolTip="{Binding ReadingDetails}" Focusable="False">
-      <Border.Background>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#F038342C"/>
-          <GradientStop Offset="1" Color="#F01C2426"/>
-        </LinearGradientBrush>
-      </Border.Background>
-      <Border.Effect>
-        <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.25"/>
-      </Border.Effect>
-      <Grid Margin="16,12">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto"/>
-          <RowDefinition Height="*"/>
-          <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <DockPanel LastChildFill="True">
-          <Path DockPanel.Dock="Right" Width="13" Height="17" Stretch="Uniform" Stroke="{StaticResource Gold}" StrokeThickness="1.4" Data="M5,1 L13,1 L12,8 L16,12 L2,12 L6,8 Z M9,12 L9,20" Visibility="{Binding IsFavorite, Converter={StaticResource VisibleWhenTrue}}" ToolTip="Always tracked"/>
-          <local:FlagGlyph Country="{Binding CountryCode}" Width="26" Height="17" Margin="0,0,9,0" ToolTip="{Binding Region}"/>
-          <Path Style="{StaticResource MemberStar}" Margin="0,0,8,0" ToolTip="{Binding Membership}"/>
-          <TextBlock x:Name="Number" Text="{Binding WorldLabel}" FontSize="19" FontWeight="SemiBold"/>
-        </DockPanel>
-        <Grid Grid.Row="1" Margin="0,7,0,7">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="25"/>
-            <ColumnDefinition Width="*"/>
-          </Grid.ColumnDefinitions>
-          <local:ActivityGlyph Kind="{Binding ActivityIcon}" Width="17" Height="17" VerticalAlignment="Center"/>
-          <TextBlock x:Name="Activity" Grid.Column="1" Text="{Binding Activity}" FontSize="12" Foreground="#C7BFB0" TextWrapping="Wrap" VerticalAlignment="Center" MaxHeight="32" TextTrimming="CharacterEllipsis" ToolTip="{Binding Activity}"/>
-        </Grid>
-        <StackPanel Grid.Row="2" Orientation="Horizontal">
-          <TextBlock x:Name="Ping" Text="{Binding Latency}" FontSize="21" Foreground="#DDB875" FontWeight="SemiBold"/>
-          <local:SignalGlyph Level="{Binding Signal}" Good="{Binding IsGood}" Width="32" Height="18" Margin="12,0,0,0" VerticalAlignment="Center"/>
-        </StackPanel>
-      </Grid>
-    </local:WorldCardSurface>
-    <DataTemplate.Triggers>
-      <DataTrigger Binding="{Binding IsMembers}" Value="True">
-        <Setter TargetName="Card" Property="BorderBrush" Value="#97774B"/>
-      </DataTrigger>
-      <DataTrigger Binding="{Binding IsGood}" Value="True">
-        <Setter TargetName="Ping" Property="Foreground" Value="#9CCFB3"/>
-      </DataTrigger>
-      <DataTrigger Binding="{Binding IsDangerous}" Value="True">
-        <Setter TargetName="Number" Property="Foreground" Value="#FF9690"/>
-        <Setter TargetName="Activity" Property="Foreground" Value="#FF9690"/>
-        <Setter TargetName="Number" Property="ToolTip" Value="{Binding DangerReason}"/>
-      </DataTrigger>
-      <DataTrigger Binding="{Binding HasWorld}" Value="False">
-        <Setter TargetName="Card" Property="Opacity" Value="0.65"/>
-      </DataTrigger>
-    </DataTemplate.Triggers>
+    <local:WorldTile/>
+  </DataTemplate>
+  <DataTemplate x:Key="TrackingCard" DataType="{x:Type local:WorldCardModel}">
+    <local:WorldTile Editable="True"/>
   </DataTemplate>
 </ResourceDictionary>

@@ -52,6 +52,12 @@ public sealed class WorldCardModel : ObservableModel
     public bool CanTrack => !_snapshot.IsFavorite && _snapshot.World is not null;
     public bool IsMembers => _snapshot.World?.Members == true;
     public bool HasWorld => _snapshot.World is not null;
+    public string? ActivitySprite => WorldActivityArt.SpriteFor(_snapshot.World) is { } name
+        ? $"pack://application:,,,/OsrsCheckPing;component/Assets/Osrs/{name}.png" : null;
+    public bool HasActivitySprite => ActivitySprite is not null;
+    public string TrackingHint => IsFavorite ? $"World {Id} is always tracked while it is a favorite" :
+        IsTracked ? $"Stop tracking world {Id} for this session" : $"Track world {Id} for this session";
+    public string FavoriteHint => IsFavorite ? $"Remove world {Id} from favorites" : $"Always track world {Id} (up to five favorites)";
     public string CountryCode => Metadata.CountryCode;
     public string Region => Metadata.Region;
     public string Activity => Metadata.Activity;
@@ -130,9 +136,10 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public bool AlwaysOnTop { get => _topmost; set => Set(ref _topmost, value); }
     public bool MinimizeToTray { get => _minimizeToTray; set => Set(ref _minimizeToTray, value); }
     public bool CloseToTray { get => _closeToTray; set => Set(ref _closeToTray, value); }
-    public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
+    public string Feedback { get => _feedback; private set { if (Set(ref _feedback, value)) Notify(nameof(HasFeedback)); } }
     public bool HasFavorites => Favorites.Count > 0;
     public bool HasTracked => Tracked.Count > 0;
+    public bool HasFeedback => !string.IsNullOrEmpty(Feedback);
     public bool HasNotice => Snapshot.Notice is not null;
     public string LiveCount => Snapshot.LiveCount.ToString();
     public string BestConnection => Snapshot.Worlds.Where(w => w.IsTracked && w.LatestResult?.Status == ProbeStatus.Success)
@@ -185,7 +192,7 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
         Sync(Favorites, Snapshot.Favorites); Sync(Tracked, Snapshot.Tracked);
         foreach (var id in _models.Keys.Except(Snapshot.Worlds.Select(w => w.Id)).ToArray()) _models.Remove(id);
         string membership = string.Join(",", Snapshot.Worlds.Where(w => w.IsTracked || w.IsFavorite).Select(w => w.Id).Order());
-        if (_filterMembership != membership) { _filterMembership = membership; WorldView.Refresh(); }
+        if (_filterMembership != membership) { _filterMembership = membership; if (!BrowseHidden) WorldView.Refresh(); }
         // No window activation, selection, or scroll operations belong in this path.
         Notify(null);
     }
@@ -205,7 +212,7 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public void SetTracking(WorldCardModel world)
     {
         Feedback = _engine.SetTracking(world.Id, !world.IsTracked) ? "Tracking updated for this session." :
-            "All 20 ordinary slots are explicitly assigned. Turn off a session choice first. Pinned worlds stay tracked.";
+            "All 20 ordinary slots are explicitly assigned. Turn off a session choice first. Favorite worlds stay tracked.";
         Refresh();
         world.Update(world.Snapshot, Snapshot.Settings.LatencyCutoffMs, force: true);
     }

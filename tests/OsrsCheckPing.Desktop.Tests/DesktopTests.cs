@@ -2,6 +2,8 @@ using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media.Effects;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -49,9 +51,11 @@ public sealed class DesktopTests
     {
         var h = new Harness();
         h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302, 303, 304, 305] };
+        string[] activities = ["2200 skill total", "Wintertodt", "Tempoross", "Forestry", "Guardians of the Rift", "Trading", "Agility Training", "Blast Furnace", "Fishing Trawler", "PvP", "A long activity description that must remain readable", "Nex FFA", "Nightmare of Ashihama", "Mastering Mixology", "Zalcano", "Volcanic Mine", "Tombs of Amascut", "House Party, Gilded Altar", "Sorceress's Garden", "Salvaging"];
         h.Catalogue.Worlds = Enumerable.Range(301, 40).Select(id => new WorldInfo(id,
-            id == 310 ? (uint)(WorldFlags.Members | WorldFlags.Pvp) : (uint)(id % 2), $"world-{id}.runescape.com",
-            id == 310 ? "PvP" : id == 311 ? "A long activity description that must remain readable" : "Trading", (id % 4) switch { 0 => 0, 1 => 1, 2 => 3, _ => 7 }, 100)).ToArray();
+            id == 301 ? (uint)(WorldFlags.Members | WorldFlags.SkillTotal) : id == 310 ? (uint)(WorldFlags.Members | WorldFlags.Pvp) : (uint)(id % 2),
+            $"world-{id}.runescape.com", activities[(id - 301) % activities.Length],
+            (id % 4) switch { 0 => 0, 1 => 1, 2 => 3, _ => 7 }, 100)).ToArray();
         h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, int.Parse(host.Split('.')[0].AsSpan(6)) - 300));
         return h;
     }
@@ -89,32 +93,47 @@ public sealed class DesktopTests
             var scroll = (ScrollViewer)main.FindName("DashboardScroll");
             Preview(main, "dashboard-1080p.png");
             Assert.True(scroll.ScrollableHeight < 1, $"All 25 cards must fit at 1080p: overflow {scroll.ScrollableHeight}");
+            Assert.True(scroll.ExtentHeight <= 420, "Twenty-five compact cards should leave most of the landscape visible.");
+            var tile = Children<WorldTile>(main).First(view => view.IsVisible && view.DataContext is WorldCardModel { Id: 301 });
+            Assert.InRange(tile.ActualHeight, 60, 72);
+            var number = (TextBlock)tile.FindName("WorldNumber"); var ping = (TextBlock)tile.FindName("LatencyValue"); var bars = (SignalGlyph)tile.FindName("ConnectionBars");
+            var np = number.TranslatePoint(new Point(), tile); var pp = ping.TranslatePoint(new Point(), tile); var bp = bars.TranslatePoint(new Point(), tile);
+            Assert.True(Math.Abs(np.Y - pp.Y) < 5 && Math.Abs(pp.Y - bp.Y) < 5, "World number, latency, and bars belong on one line.");
+            Assert.InRange(pp.X - (np.X + number.ActualWidth), 0, 12);
             Assert.Empty(Children<ListBox>(main)); Assert.Empty(Children<DataGrid>(main));
             main.Model.OpenSettings.Execute(null); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Assert.True(main.Model.ShowSettings); Assert.Single(Application.Current.Windows.Cast<MainWindow>());
             var tabs = (TabControl)main.FindName("SettingsTabs"); Assert.Equal(3, tabs.Items.Count);
+            var sheet = (Border)main.FindName("SettingsSurface");
+            Assert.Equal(0, ((SolidColorBrush)sheet.Background).Color.A);
+            var trackingCards = (ItemsControl)main.FindName("TrackingCards");
+            main.UpdateLayout();
+            Assert.True(trackingCards.ActualHeight <= 350, "Tracking settings must use a compact grid, not one world per line.");
+            Assert.Equal(5, Children<System.Windows.Controls.Primitives.UniformGrid>(trackingCards).Single().Columns);
             for (int tab = 0; tab < 3; tab++) { tabs.SelectedIndex = tab; main.UpdateLayout(); Preview(main, $"settings-{tab}-1080p.png"); }
             tabs.SelectedIndex = 0;
             Assert.Equal(25, main.Model.WorldView.Cast<WorldCardModel>().Count());
             int probes = h.Probe.Hosts.Count; main.Model.BrowseHidden = true;
             Assert.Equal(40, main.Model.WorldView.Cast<WorldCardModel>().Count()); Assert.Equal(probes, h.Probe.Hosts.Count);
             main.UpdateLayout();
-            var pin = Children<CheckBox>(main).Single(box => box.DataContext is WorldCardModel { Id: 306 } && box.Content as string == "Pin");
+            var pin = Children<ToggleButton>(main).Single(box => box.IsVisible && box.DataContext is WorldCardModel { Id: 306 } && box.Name == "FavoriteToggle");
             pin.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, true);
             main.Model.AllWorlds.Single(world => world.Id == 306).ToggleFavorite.Execute(null);
             await UntilAsync(() => pin.IsChecked == false);
             Assert.Equal(5, main.Model.Favorites.Count);
             Assert.Contains("up to five", main.Model.Feedback);
-            var locked = Children<CheckBox>(main).Single(box => box.DataContext is WorldCardModel { Id: 301 } && box.Content as string == "Track");
+            var locked = Children<ToggleButton>(main).Single(box => box.IsVisible && box.DataContext is WorldCardModel { Id: 301 } && box.Name == "TrackingToggle");
             Assert.True(locked.IsChecked); Assert.False(locked.IsEnabled);
             main.Model.Search = "WorldDoesNotExist"; Assert.Empty(main.Model.WorldView.Cast<WorldCardModel>()); main.Model.Search = "";
             var search = (TextBox)main.FindName("WorldSearch"); search.Focus();
             await h.Engine.CheckTrackedWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Assert.Same(search, Keyboard.FocusedElement);
             Assert.True(search.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)));
+            await ResizeAsync(main, 1920, 720);
             var trackingScroll = (ScrollViewer)main.FindName("TrackingScroll");
             trackingScroll.ScrollToVerticalOffset(200); main.UpdateLayout();
             double settingsOffset = trackingScroll.VerticalOffset;
+            Assert.True(settingsOffset > 0, "Settings scroll preservation must be tested with a scrolled viewport.");
             await h.Engine.CheckTrackedWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Assert.Equal(settingsOffset, trackingScroll.VerticalOffset);
             main.Model.Cutoff = "80"; main.Model.AlwaysOnTop = true; main.Model.ApplySettings.Execute(null);
@@ -135,6 +154,53 @@ public sealed class DesktopTests
     });
 
     [Fact]
+    public Task TrackingGridFadesInactiveCardsUsesRealSpritesAndHonorsReducedMotion() => OnUiThreadAsync(async () =>
+    {
+        var h = Samples(); var main = new MainWindow(h.Engine); main.Show();
+        try
+        {
+            await UntilAsync(() => main.Model.Tracked.Count == 20);
+            await ResizeAsync(main, 1920, 1040);
+            main.Model.ShowSettings = true; main.Model.BrowseHidden = true;
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
+            foreach (var uri in main.Model.AllWorlds.Select(world => world.ActivitySprite).OfType<string>().Distinct())
+            {
+                using var stream = Application.GetResourceStream(new Uri(uri)).Stream;
+                var frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                Assert.InRange(frame.PixelWidth, 1, 32); Assert.InRange(frame.PixelHeight, 1, 32);
+            }
+            WorldTile Tile(int id) => Children<WorldTile>(main).Single(view => view.IsVisible && view.Editable && view.DataContext is WorldCardModel world && world.Id == id);
+            var total = (System.Windows.Controls.Image)Tile(301).FindName("ActivitySprite");
+            Assert.Equal(23, ((BitmapSource)total.Source).PixelWidth); // Native experience/total-level bar graph.
+            var inactive = Tile(340); var surface = (WorldCardSurface)inactive.FindName("Surface");
+            SetCursorPos(1, 1); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.InRange(surface.Opacity, .4, .5);
+            Assert.True(((SolidColorBrush)surface.Background).Color.A < 128, "Individual tiles must let the landscape through.");
+            var at = surface.PointToScreen(new Point(surface.ActualWidth / 2, surface.ActualHeight / 2));
+            SetCursorPos((int)at.X, (int)at.Y);
+            await UntilAsync(() => surface.IsMouseOver && surface.Opacity > .8);
+            if (Motion.CanAnimate(surface)) Assert.True(((DropShadowEffect)surface.Effect).HasAnimatedProperties);
+            Motion.SetEnabled(main, false); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.False(((DropShadowEffect)surface.Effect).HasAnimatedProperties);
+            SetCursorPos(1, 1); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            var favorite = (ToggleButton)Tile(301).FindName("FavoriteToggle");
+            var ordinary = (ToggleButton)Tile(306).FindName("FavoriteToggle");
+            Assert.True(favorite.IsChecked); Assert.False(ordinary.IsChecked);
+            Assert.Equal(Color.FromRgb(242, 125, 140), ((SolidColorBrush)favorite.Foreground).Color);
+            Assert.True(ordinary.Opacity < favorite.Opacity);
+            var before = Tile(340);
+            ((WorldCardModel)before.DataContext).ToggleTracking.Execute(null);
+            await UntilAsync(() => main.Model.AllWorlds.Single(w => w.Id == 340).IsTracked);
+            Assert.Same(before, Tile(340)); // Browsing all worlds must not rebuild tiles when tracking changes.
+            Assert.Equal(1, ((WorldCardSurface)Tile(340).FindName("Surface")).Opacity);
+            var track = (ToggleButton)Tile(340).FindName("TrackingToggle");
+            Assert.True(track.IsChecked);
+            Preview(main, "tracking-browse-compact.png");
+        }
+        finally { SetCursorPos(1, 1); await CloseAsync(main); await h.DisposeAsync(); }
+    });
+
+    [Fact]
     public Task ReadingsKeepCardIdentityOrderScrollAndFocusWhileBackgrounded() => OnUiThreadAsync(async () =>
     {
         var h = Samples(); var main = new MainWindow(h.Engine); var sentinel = new Window { Title = "Foreground sentinel", Width = 350, Height = 180 };
@@ -142,8 +208,9 @@ public sealed class DesktopTests
         try
         {
             await UntilAsync(() => main.Model.Tracked.Count == 20);
-            main.WindowState = WindowState.Normal; main.Width = 720; main.Height = 600; main.UpdateLayout();
+            main.WindowState = WindowState.Normal; main.Width = 720; main.Height = 360; main.UpdateLayout();
             var scroll = (ScrollViewer)main.FindName("DashboardScroll"); scroll.ScrollToVerticalOffset(240); main.UpdateLayout();
+            Assert.True(scroll.ScrollableHeight > 0, "Use a viewport that actually exercises scrolling.");
             double offset = scroll.VerticalOffset; var cards = main.Model.Tracked.ToArray(); int changes = 0;
             main.Model.Tracked.CollectionChanged += (_, _) => changes++;
             sentinel.Show(); sentinel.Activate();
@@ -241,5 +308,6 @@ public sealed class DesktopTests
         Assert.Equal(ProbeStatus.Success, result.Status);
     }
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
 }
