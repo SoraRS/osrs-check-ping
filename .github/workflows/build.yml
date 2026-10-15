@@ -55,9 +55,13 @@ jobs:
           $app = Start-Process artifacts/win-x64/OsrsCheckPing.exe -PassThru
           try {
             if (-not $app.WaitForInputIdle(15000)) { throw 'Application did not become responsive' }
-            $app.Refresh()
-            if ($app.HasExited -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
-              throw 'Application did not open its main window'
+            $deadline = (Get-Date).AddSeconds(15)
+            do {
+              Start-Sleep -Milliseconds 250
+              $app.Refresh()
+            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') -and (Get-Date) -lt $deadline)
+            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
+              throw "Application did not open its main window. Title: '$($app.MainWindowTitle)'"
             }
             if (-not $app.CloseMainWindow()) { throw 'Could not close the application' }
             if (-not $app.WaitForExit(15000)) { throw 'Application did not shut down cleanly' }
