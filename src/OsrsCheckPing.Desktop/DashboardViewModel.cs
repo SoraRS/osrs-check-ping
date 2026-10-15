@@ -144,10 +144,11 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public string LiveCount => Snapshot.LiveCount.ToString();
     public string BestConnection => Snapshot.Worlds.Where(w => w.IsTracked && w.LatestResult?.Status == ProbeStatus.Success)
         .Select(w => w.LatestResult!.RoundTripMilliseconds).Where(ms => ms is >= 0).Min() is { } best ? $"{best} ms" : "—";
-    public string EmptyTitle => !Snapshot.SettingsLoaded || Snapshot.IsScanning ? "Finding your worlds" : "No worlds under your cutoff";
+    public string EmptyTitle => !Snapshot.SettingsLoaded || Snapshot.IsScanning ? "Finding your worlds" :
+        Snapshot.CatalogueFetchedAt is null ? "World catalogue unavailable" : "No worlds under your cutoff";
     public string EmptyDescription => Snapshot.IsScanning ? "Checking the world catalogue. Open settings for progress." :
         Snapshot.CatalogueFetchedAt is null ? "The world catalogue is unavailable. Open settings to check your connection and retry." :
-        "Open settings to raise the latency cutoff, pin a favorite, or check your connection again.";
+        "Open settings to raise the latency cutoff, add a favorite, or check your connection again.";
     public string ScanStatus => Snapshot.IsScanning ? $"{(Snapshot.IsRecheckingHidden ? "Reviewing hidden worlds" : "Checking all worlds")} · {Snapshot.ScanCompleted} / {Snapshot.ScanTotal}" : "Ready";
     public bool CanCheckConnection => Snapshot.SettingsLoaded && !Snapshot.IsScanning;
     public double ScanMaximum => Math.Max(1, Snapshot.ScanTotal);
@@ -218,7 +219,7 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     }
     public async Task SetFavoriteAsync(WorldCardModel world)
     {
-        try { Feedback = await _engine.SetFavoriteAsync(world.Id, !world.IsFavorite) ? "Always-tracked worlds updated." : "You can pin up to five worlds. Unpin one first."; }
+        try { Feedback = await _engine.SetFavoriteAsync(world.Id, !world.IsFavorite) ? "Favorites updated." : "You can save up to five favorites. Remove one first."; }
         catch (OperationCanceledException) { }
         Refresh();
         world.Update(world.Snapshot, Snapshot.Settings.LatencyCutoffMs, force: true);

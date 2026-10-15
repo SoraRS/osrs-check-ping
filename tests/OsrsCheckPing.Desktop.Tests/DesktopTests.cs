@@ -47,6 +47,15 @@ public sealed class DesktopTests
         window.UpdateLayout();
     }
 
+    private static async Task ClickAsync(FrameworkElement element)
+    {
+        var at = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
+        Assert.True(SetCursorPos((int)at.X, (int)at.Y));
+        Input[] input = [new() { Data = new() { Mouse = new() { Flags = 0x0002 } } }, new() { Data = new() { Mouse = new() { Flags = 0x0004 } } }];
+        Assert.Equal(2u, SendInput(2, input, Marshal.SizeOf<Input>()));
+        await Task.Delay(80); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+    }
+
     private static Harness Samples()
     {
         var h = new Harness();
@@ -110,15 +119,23 @@ public sealed class DesktopTests
             main.UpdateLayout();
             Assert.True(trackingCards.ActualHeight <= 350, "Tracking settings must use a compact grid, not one world per line.");
             Assert.Equal(5, Children<System.Windows.Controls.Primitives.UniformGrid>(trackingCards).Single().Columns);
-            for (int tab = 0; tab < 3; tab++) { tabs.SelectedIndex = tab; main.UpdateLayout(); Preview(main, $"settings-{tab}-1080p.png"); }
+            for (int tab = 0; tab < 3; tab++)
+            {
+                tabs.SelectedIndex = tab; main.UpdateLayout();
+                if (tab > 0)
+                {
+                    var content = (Border)main.FindName(tab == 1 ? "ApplicationSheet" : "AboutSheet");
+                    Assert.InRange(content.ActualHeight, 400, 650); // Local sheets end at their content instead of covering unused scenery.
+                }
+                Preview(main, $"settings-{tab}-1080p.png");
+            }
             tabs.SelectedIndex = 0;
             Assert.Equal(25, main.Model.WorldView.Cast<WorldCardModel>().Count());
             int probes = h.Probe.Hosts.Count; main.Model.BrowseHidden = true;
             Assert.Equal(40, main.Model.WorldView.Cast<WorldCardModel>().Count()); Assert.Equal(probes, h.Probe.Hosts.Count);
             main.UpdateLayout();
             var pin = Children<ToggleButton>(main).Single(box => box.IsVisible && box.DataContext is WorldCardModel { Id: 306 } && box.Name == "FavoriteToggle");
-            pin.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, true);
-            main.Model.AllWorlds.Single(world => world.Id == 306).ToggleFavorite.Execute(null);
+            await ClickAsync(pin);
             await UntilAsync(() => pin.IsChecked == false);
             Assert.Equal(5, main.Model.Favorites.Count);
             Assert.Contains("up to five", main.Model.Feedback);
@@ -146,7 +163,13 @@ public sealed class DesktopTests
                 Preview(main, $"dashboard-{width}-{scale}.png", scale);
                 Assert.InRange(main.ColumnCount, 1, 5);
                 main.Model.ShowSettings = true;
-                for (int tab = 0; tab < 3; tab++) { tabs.SelectedIndex = tab; main.UpdateLayout(); Preview(main, $"settings-{tab}-{width}-{scale}.png", scale); }
+                for (int tab = 0; tab < 3; tab++)
+                {
+                    tabs.SelectedIndex = tab; main.UpdateLayout();
+                    var pageScroll = tab == 0 ? trackingScroll : (ScrollViewer)((TabItem)tabs.Items[tab]).Content;
+                    pageScroll.ScrollToTop(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
+                    Preview(main, $"settings-{tab}-{width}-{scale}.png", scale);
+                }
                 main.Model.ShowSettings = false;
             }
         }
@@ -179,7 +202,14 @@ public sealed class DesktopTests
             var at = surface.PointToScreen(new Point(surface.ActualWidth / 2, surface.ActualHeight / 2));
             SetCursorPos((int)at.X, (int)at.Y);
             await UntilAsync(() => surface.IsMouseOver && surface.Opacity > .8);
-            if (Motion.CanAnimate(surface)) Assert.True(((DropShadowEffect)surface.Effect).HasAnimatedProperties);
+            if (Motion.CanAnimate(surface))
+            {
+                var glow = (DropShadowEffect)surface.Effect;
+                Assert.True(glow.HasAnimatedProperties);
+                double initial = glow.Opacity; await Task.Delay(260);
+                Assert.True(Math.Abs(initial - glow.Opacity) > .005, "The hover glow must actually animate, not just retain a clock.");
+            }
+            Preview(main, "tracking-hover-glow.png");
             Motion.SetEnabled(main, false); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Assert.False(((DropShadowEffect)surface.Effect).HasAnimatedProperties);
             SetCursorPos(1, 1); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -188,8 +218,13 @@ public sealed class DesktopTests
             Assert.True(favorite.IsChecked); Assert.False(ordinary.IsChecked);
             Assert.Equal(Color.FromRgb(242, 125, 140), ((SolidColorBrush)favorite.Foreground).Color);
             Assert.True(ordinary.Opacity < favorite.Opacity);
+            await ClickAsync(favorite);
+            await UntilAsync(() => !main.Model.AllWorlds.Single(w => w.Id == 301).IsFavorite);
+            await ClickAsync(ordinary);
+            await UntilAsync(() => main.Model.AllWorlds.Single(w => w.Id == 306).IsFavorite);
+            Assert.Equal(5, main.Model.Favorites.Count);
             var before = Tile(340);
-            ((WorldCardModel)before.DataContext).ToggleTracking.Execute(null);
+            await ClickAsync((ToggleButton)before.FindName("TrackingToggle"));
             await UntilAsync(() => main.Model.AllWorlds.Single(w => w.Id == 340).IsTracked);
             Assert.Same(before, Tile(340)); // Browsing all worlds must not rebuild tiles when tracking changes.
             Assert.Equal(1, ((WorldCardSurface)Tile(340).FindName("Surface")).Opacity);
@@ -267,6 +302,7 @@ public sealed class DesktopTests
             await UntilAsync(() => main.Model.HasNotice && !main.Model.Snapshot.IsScanning);
             Assert.Equal("Unavailable", main.Model.Favorites.Single().Latency);
             Assert.False(main.Model.HasTracked);
+            Assert.Equal("World catalogue unavailable", main.Model.EmptyTitle);
             Preview(main, "offline-no-cache.png");
             main.Model.OpenSettings.Execute(null); Assert.True(main.Model.ShowSettings);
             h.Catalogue.Error = null;
@@ -307,6 +343,10 @@ public sealed class DesktopTests
         var result = await new IcmpLatencyProbe().ProbeAsync("127.0.0.1", CancellationToken.None);
         Assert.Equal(ProbeStatus.Success, result.Status);
     }
+    [StructLayout(LayoutKind.Sequential)] private struct Input { public uint Type; public InputUnion Data; }
+    [StructLayout(LayoutKind.Explicit)] private struct InputUnion { [FieldOffset(0)] public MouseInput Mouse; }
+    [StructLayout(LayoutKind.Sequential)] private struct MouseInput { public int X, Y; public uint Data, Flags, Time; public UIntPtr Extra; }
+    [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint count, Input[] input, int size);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);

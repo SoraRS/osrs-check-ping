@@ -173,7 +173,7 @@
               </TabItem>
               <TabItem Header="Application">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                  <Border Background="#99121B20" CornerRadius="8" Padding="18" MaxWidth="760" HorizontalAlignment="Left">
+                  <Border x:Name="ApplicationSheet" Background="#99121B20" CornerRadius="8" Padding="18" MaxWidth="760" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <StackPanel>
                       <TextBlock Text="Connection monitoring" Style="{StaticResource Heading}"/>
                       <TextBlock Text="Choose the worlds that qualify for automatic tracking. Changes apply to subsequent readings; use Check connection to find newly eligible worlds immediately." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,22"/>
@@ -203,7 +203,7 @@
               </TabItem>
               <TabItem Header="About">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                  <Border Background="#99121B20" CornerRadius="8" Padding="18" MaxWidth="740" HorizontalAlignment="Left">
+                  <Border x:Name="AboutSheet" Background="#99121B20" CornerRadius="8" Padding="18" MaxWidth="740" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <StackPanel>
                       <Image Source="{StaticResource AppMark}" Width="76" Height="76" HorizontalAlignment="Left" Margin="0,0,0,20"/>
                       <TextBlock Text="OSRS Check Ping" Style="{StaticResource Heading}"/>
