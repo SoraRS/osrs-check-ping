@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    outputs:
+      unsigned-artifact-id:
+        description: Published executable artifact for verified signing
+        value: ${{ jobs.windows.outputs.unsigned-artifact-id }}
 
 permissions:
   contents: read
@@ -27,6 +32,8 @@ jobs:
           path: tests/OsrsCheckPing.Core.Tests/TestResults/*.trx
 
   windows:
+    outputs:
+      unsigned-artifact-id: ${{ steps.executable.outputs.artifact-id }}
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -77,6 +84,7 @@ jobs:
             if (-not $app.HasExited) { $app.Kill() }
           }
       - uses: actions/upload-artifact@v7
+        id: executable
         with:
           name: OsrsCheckPing-win-x64
           path: artifacts/win-x64/OsrsCheckPing.exe

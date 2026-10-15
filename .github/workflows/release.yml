@@ -1,0 +1,88 @@
+name: Signed release candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/build.yml
+
+  sign:
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 45
+    environment: release-signing
+    steps:
+      - name: Check provider configuration
+        shell: pwsh
+        env:
+          ORGANIZATION: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          PROJECT: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          POLICY: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          foreach ($key in @('ORGANIZATION', 'PROJECT', 'POLICY', 'TOKEN')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($key))) {
+              throw "Missing SignPath configuration: $key. Complete docs/SIGNING.md enrollment first."
+            }
+          }
+      - name: Submit verified build for production signing
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          github-artifact-id: ${{ needs.validate.outputs.unsigned-artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: artifacts/signed
+      - name: Verify signed executable and timestamp
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem artifacts/signed -File -Recurse)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsCheckPing.exe') {
+            throw 'Expected only the signed OsrsCheckPing.exe'
+          }
+          $signature = Get-AuthenticodeSignature $files[0].FullName
+          if ($signature.Status -ne 'Valid' -or $null -eq $signature.TimeStamperCertificate -or
+              $signature.SignerCertificate.Subject -notmatch 'CN=SignPath Foundation(?:,|$)') {
+            throw 'Missing valid SignPath Foundation signature or trusted timestamp'
+          }
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Smoke test signed executable
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem artifacts/signed/OsrsCheckPing.exe
+          $app = Start-Process $file.FullName -PassThru
+          try {
+            if (-not $app.WaitForInputIdle(15000)) { throw 'Application did not become responsive' }
+            $deadline = (Get-Date).AddSeconds(15)
+            do {
+              Start-Sleep -Milliseconds 250
+              $app.Refresh()
+            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') -and (Get-Date) -lt $deadline)
+            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
+              throw "Signed application did not open its main window. Title: '$($app.MainWindowTitle)'"
+            }
+            if (-not $app.CloseMainWindow() -or -not $app.WaitForExit(15000) -or $app.ExitCode -ne 0) {
+              throw 'Signed application did not exit cleanly'
+            }
+          } finally { if (-not $app.HasExited) { $app.Kill() } }
+      - name: Hash final signed bytes
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash artifacts/signed/OsrsCheckPing.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  OsrsCheckPing.exe" | Set-Content artifacts/signed/SHA256SUMS.txt -Encoding ascii
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OsrsCheckPing-signed-release-candidate
+          path: artifacts/signed/*
+          if-no-files-found: error

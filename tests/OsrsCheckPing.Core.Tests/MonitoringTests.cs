@@ -10,14 +10,14 @@ public sealed class MonitoringTests
         await using var h = new Harness();
         h.Probe.Handler = (host, _) => Task.FromResult(host switch
         {
-            "supplied-301a.runescape.com" => new ProbeResult(ProbeStatus.Success, 60),
-            "supplied-302a.runescape.com" => new ProbeResult(ProbeStatus.Success, 61),
+            "supplied-301a.runescape.com" => new ProbeResult(ProbeStatus.Success, 30),
+            "supplied-302a.runescape.com" => new ProbeResult(ProbeStatus.Success, 31),
             "supplied-303a.runescape.com" => new ProbeResult(ProbeStatus.Success, 0),
             _ => new ProbeResult(ProbeStatus.TimedOut)
         });
         await h.Engine.StartAsync();
         Assert.Equal(h.Catalogue.Worlds.Select(w => w.Host).Order(), h.Probe.Hosts.Order());
-        Assert.Equal([303, 301], h.Engine.GetSnapshot().Tracked.Select(w => w.Id));
+        Assert.Equal([301, 303], h.Engine.GetSnapshot().Tracked.Select(w => w.Id));
         Assert.All(h.Engine.GetSnapshot().Worlds, w => Assert.True(w.IsScanResult));
         Assert.All(h.Engine.GetSnapshot().Worlds, w => Assert.Equal(0, w.ConsecutiveBadReadings));
     }
@@ -27,7 +27,7 @@ public sealed class MonitoringTests
     {
         await using var h = new Harness();
         await h.Engine.StartAsync();
-        h.Probe.Return(new ProbeResult(ProbeStatus.Success, 61));
+        h.Probe.Return(new ProbeResult(ProbeStatus.Success, 31));
         for (int i = 0; i < 11; i++) await h.Engine.CheckTrackedWorldsAsync();
         Assert.True(h.World().IsTracked);
         Assert.Equal(11, h.World().ConsecutiveBadReadings);
@@ -53,7 +53,7 @@ public sealed class MonitoringTests
             await h.Engine.CheckTrackedWorldsAsync();
         }
         Assert.Equal(4, h.World().ConsecutiveBadReadings);
-        h.Probe.Return(new ProbeResult(ProbeStatus.Success, 60));
+        h.Probe.Return(new ProbeResult(ProbeStatus.Success, 30));
         await h.Engine.CheckTrackedWorldsAsync();
         Assert.Equal(0, h.World().ConsecutiveBadReadings);
         Assert.False(h.World().IsScanResult);
@@ -168,7 +168,7 @@ public sealed class MonitoringTests
     }
 
     [Fact]
-    public async Task FavoritesAndOtherWorldsSortSeparatelyWithFailedReadingsLast()
+    public async Task FavoritesAndOtherWorldsKeepNumericOrderRegardlessOfLatency()
     {
         await using var h = new Harness();
         h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302] };
@@ -179,7 +179,7 @@ public sealed class MonitoringTests
             _ => new ProbeResult(ProbeStatus.Success, 20)
         });
         await h.Engine.StartAsync();
-        Assert.Equal([302, 301], h.Engine.GetSnapshot().Favorites.Select(w => w.Id));
+        Assert.Equal([301, 302], h.Engine.GetSnapshot().Favorites.Select(w => w.Id));
         Assert.Equal([303, 304], h.Engine.GetSnapshot().Tracked.Select(w => w.Id));
     }
 }

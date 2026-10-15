@@ -5,14 +5,7 @@ namespace OsrsCheckPing.Core;
 public sealed record WorldInfo(int Id, uint Flags, string Host, string Activity, int Location, int Population)
 {
     [JsonIgnore] public bool Members => (Flags & 1) != 0;
-    [JsonIgnore] public string Region => Location switch
-    {
-        0 => "United States",
-        1 => "United Kingdom",
-        3 => "Australia",
-        7 => "Germany",
-        _ => $"Unknown region ({Location})"
-    };
+    [JsonIgnore] public string Region => WorldMetadata.RegionFor(Location).Region;
 }
 
 public enum ProbeStatus { Success, TimedOut, Unreachable, DnsError, Error }
@@ -27,7 +20,9 @@ public sealed record WindowPlacement(int X, int Y, int Width, int Height, bool M
 
 public sealed record AppSettings
 {
-    public int LatencyCutoffMs { get; init; } = 60;
+    public const int CurrentSchemaVersion = 1;
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
+    public int LatencyCutoffMs { get; init; } = 30;
     public int RefreshIntervalSeconds { get; init; } = 5;
     public bool AlwaysOnTop { get; init; }
     public bool MinimizeToTray { get; init; }
@@ -41,7 +36,7 @@ public sealed record AppSettings
         LatencyCutoffMs = Math.Clamp(LatencyCutoffMs, 1, 2000),
         RefreshIntervalSeconds = Math.Clamp(RefreshIntervalSeconds, 1, 60),
         FavoriteWorldIds = (FavoriteWorldIds ?? []).Where(id => id is > 0 and <= ushort.MaxValue)
-            .Distinct().Take(5).ToArray()
+            .Distinct().Take(MonitoringEngine.MaximumFavoriteWorlds).ToArray()
     };
 }
 
@@ -63,8 +58,5 @@ public sealed record MonitorSnapshot(
     public int LiveCount => Worlds.Count(w => w.IsTracked);
     public int HiddenCount => Worlds.Count(w => w.World is not null && !w.IsTracked);
 
-    private static WorldSnapshot[] Sort(IEnumerable<WorldSnapshot> worlds) => worlds
-        .OrderBy(w => w.LatestResult?.Status == ProbeStatus.Success
-            ? w.LatestResult.RoundTripMilliseconds ?? long.MaxValue : long.MaxValue)
-        .ThenBy(w => w.Id).ToArray();
+    private static WorldSnapshot[] Sort(IEnumerable<WorldSnapshot> worlds) => worlds.OrderBy(w => w.Id).ToArray();
 }

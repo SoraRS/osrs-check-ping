@@ -1,88 +1,57 @@
 # OSRS Check Ping
 
-A small Windows desktop utility for watching your connection latency to Old School RuneScape worlds. It uses native Windows Forms controls with an OSRS-inspired palette and does not bundle a browser or the .NET runtime.
+Find a nearby Old School RuneScape world without watching a list jump around. Check Ping is a small Windows app that shows your current network latency, keeps your favorites close, and quietly reviews the other worlds in the background.
 
-## Run
+## Get started
 
-Requires **Windows x64** and the **.NET 10 Desktop Runtime (x64)**. The standard .NET or ASP.NET runtime alone is insufficient. Install the Desktop Runtime from [Microsoft's .NET 10 downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
+1. You need **Windows x64** and Microsoft's **[.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)**. Choose **Desktop Runtime**, rather than the ASP.NET or standard runtime.
+2. Download `OsrsCheckPing.exe` from [Releases](https://github.com/SoraRS/osrs-check-ping/releases). If a release is not yet available, testing builds are in the **OsrsCheckPing-win-x64** artifact on the [Actions page](https://github.com/SoraRS/osrs-check-ping/actions); extract the ZIP first. Testing builds may be unsigned.
+3. Open the executable. No installation or administrator access is needed. The app starts maximized and checks every world once. Open the gear to see progress.
 
-Download the `OsrsCheckPing-win-x64` artifact from a successful GitHub Actions **Build and test** run, extract it, and open `OsrsCheckPing.exe`. There is no installer or administrator requirement. You can also build it from source below.
+## Read your worlds
 
-The application downloads Jagex's world catalogue on each launch and sends one ICMP probe to every listed world. It selects the **20 fastest eligible worlds**, including reserved favorite slots, and refreshes their latency every **five seconds**. The default eligibility cutoff is **60 ms**. Fewer worlds are shown when fewer qualify. Checks measure network round-trip latency; they do not measure game-server tick processing. Networks that block ICMP may show timeouts even when the game is reachable.
+The dashboard shows the **20 fastest eligible worlds**, plus **up to five pinned favorites** in their own section. The default cutoff is **30 ms**. Fewer worlds appear when fewer meet your cutoff. Both sections stay in world-number order, so a changing ping won't move a card.
 
-The **Always tracked** section contains up to five saved favorites; its slots count toward the 20-world limit, including unavailable favorites. Other tracked worlds appear below it. Both sections sort by current latency, then world number, with failed readings last. A connection compass, status cards, and signal meters give a quick view of the best connection and live selection. The countdown shows when the next hidden-world review is due.
+Each card shows a country flag, activity, latency, and signal bars. A **filled gold star** means members; an **outlined star** means free-to-play. A **pin** means always tracked. Red world/activity text warns about main-character PvP, High Risk, or Bounty Hunter rules; hover for the reason and read the game's own warning before entering.
 
-The remaining worlds are hidden from the dashboard and receive **no regular live probes**. **Every five minutes**, the app checks each hidden world once and updates the top 20 using those results and the current live readings. Faster eligible worlds replace slower ones. Favorites retain their slots. A manual full scan restarts the five-minute countdown. Live cycles briefly pause during the hidden-world review so probe operations never overlap.
+Live worlds update every **five seconds** by default. Hidden worlds receive no live checks; every **five minutes**, the app checks them once and updates the selection. Favorites continue being checked even when slow or unreachable. A timeout can mean ICMP is blocked, rather than that the game world is offline.
 
-## Settings
+These readings measure **network round-trip time**, not server tick processing. Low ping does not guarantee a lag-free game.
 
-Open **Settings** or press **Ctrl+,**.
+## Make it yours
 
-**World tracking** shows the live selection by default and supports searching by number, region, or activity. Enable **Browse hidden worlds** to manage the rest of the catalogue; browsing alone sends no probes. Toggle **Track** to enable or disable a world for this session. Explicitly enabled worlds take priority over automatic candidates, after favorites, and stay within the 20-world limit. These choices survive reviews and **Recheck all worlds**, but reset after exiting. **Reset session toggles** restores automatic selection using the latest available readings and clears removal streaks.
+Open the **gear** or press **Ctrl+,**. Settings stays inside the same window. Use **Worlds** or **Esc** to return.
 
-Toggle **Always** to save a favorite. Favorites keep being checked through high latency and failures and cannot be manually disabled while pinned. A sixth favorite is rejected until another is unpinned. Unpinning restores the underlying session/automatic selection. Saved favorites missing from the catalogue stay visible as unavailable; the app never guesses a hostname.
+- **World tracking:** search by world number, country, or activity. Enable **Browse hidden worlds** to see the rest; browsing sends no probes. **Track** makes a choice for this session. Manually enabled worlds take priority within the 20 ordinary slots. **Reset session choices** returns to automatic selection.
+- **Pin:** save up to five always-tracked worlds. Pinned tracking stays checked and locked. Unpinning restores the underlying tracking choice. A sixth pin is rejected until you remove another.
+- **Check connection:** download the catalogue again and check every world. Session choices and pins survive the scan. Inactive readings are labeled **Scan result**.
+- **Application:** adjust acceptable latency and update frequency, or enable always-on-top and tray options. Select **Apply settings** to save. If close-to-tray is enabled, choose **Exit** from the tray menu to quit fully.
+- **About:** version, project, support, privacy, and license links.
 
-**Recheck all worlds**, or **Recheck worlds** on the dashboard, downloads the current catalogue and checks every world once. Live cycles pause during this operation. The new top 20 replaces the previous selection, preserving session toggles and favorites. Readings labeled **Scan result** come from discovery or a hidden-world review; inactive worlds are not continuously probed. Unknown location codes are displayed as unknown regions rather than guessed.
+Slow or failed ordinary worlds are removed after one minute's worth of consecutive bad live readings—12 at the default interval. A good reading resets that count. Removed worlds can return at the next background review or **Check connection**, or when manually enabled. Session tracking choices reset after exiting; pins and preferences are remembered.
 
-**Application** configures the cutoff (1–2,000 ms), refresh interval (1–60 seconds), always-on-top, minimize-to-tray, and close-to-tray. Click **Apply settings** to save. Window and tray options default to off; window size and position are remembered on exit. Use the tray menu's **Exit** command to quit when close-to-tray is enabled. There is no launch-at-login behavior.
+Existing installations using the old 60 ms default move to 30 ms once. Other custom cutoffs are kept, and you can choose 60 ms again afterward.
 
-For unpinned worlds, slow or failed live checks count toward automatic removal. A successful reading at or below the cutoff resets the streak. Removal requires `ceil(60 / refresh interval)` consecutive bad readings: **12** at the default five seconds. Discovery and hidden-review probes do not count. Changing monitoring settings resets streaks; the next review or a manual recheck can add newly eligible automatic worlds. Removed worlds stay hidden until the next five-minute review, a full recheck, another launch, or manually toggling tracking on.
+## Having trouble?
 
-Probes have a two-second deadline, including DNS, with at most 32 probes in flight and no overlapping probes for a world. Refresh timing is best effort: many simultaneous timeouts or an unusually short interval can lengthen a cycle. Missed cycles are not queued, and suspended time is not counted as failed readings.
+**Nothing appears:** open settings and check scan progress or any error notice. Raise the cutoff, choose **Apply settings**, then **Check connection**. Thirty milliseconds is intentionally selective and may be too low for your location.
 
-## Saved data and failures
+**Every world times out:** check your connection, VPN, firewall, and network rules. Some networks block ICMP. The app may time out even while the game works. Try another network; administrator access is not normally required.
 
-Data is stored in `%LOCALAPPDATA%\OsrsCheckPing`:
+**The catalogue won't download:** the app uses its last saved catalogue when available. Settings shows when it was saved and why a fallback was needed. Without a saved copy, connect to the internet and select **Check connection**.
 
-- `settings.json`: application preferences, up to five favorite world IDs, and window placement.
-- `worlds.json`: the last successfully downloaded catalogue and its download time.
+**Windows asks for a runtime:** install the **x64 .NET 10 Desktop Runtime** from the link above, then reopen the app.
 
-Latency samples and manual session toggles are kept in memory. JSON writes use a temporary file and replacement to protect the previous file if writing fails.
+**Windows says “Don't run” or “unknown publisher”:** check the download source and the file's **Properties → Digital Signatures**. Development builds are unsigned. Production signing requires external provider approval, and even a newly signed download can initially show SmartScreen warnings. See [signing status and verification](docs/SIGNING.md). Do not disable Windows protection globally.
 
-When downloading fails, the app uses the last saved catalogue and displays its age. Without a cache, settings remain accessible and **Retry world scan** or **Recheck all worlds** retries the download. Settings write failures are displayed; current choices continue to work in memory.
+**The app disappeared:** look in the system tray if you enabled a tray option. Double-click its icon to restore it, or right-click for Settings and Exit.
 
-The app contacts Jagex's public catalogue endpoint and the world hosts supplied by that catalogue. It has no game account login, game-client integration, analytics service, or latency-history database.
+**Preferences won't save:** settings shows a notice; your current choices still work for the session. Check access to `%LOCALAPPDATA%\OsrsCheckPing`. To reset saved data, fully exit and rename that folder; the app recreates it next launch.
 
-## Develop and publish
+## Privacy and support
 
-Install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0). No third-party application runtime dependencies are required.
+The app contacts Jagex's public catalogue endpoint and probes the supplied world hosts. Preferences and the last catalogue are saved locally. There is no account login, analytics, or saved latency history. See [Privacy](docs/PRIVACY.md).
 
-```sh
-dotnet build --configuration Release
-dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release
-```
+[Report a problem](https://github.com/SoraRS/osrs-check-ping/issues) with your Windows version, display scaling, and what happened. Development, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
 
-On Windows, start the desktop app with:
-
-```sh
-dotnet run --project src/OsrsCheckPing.Desktop
-```
-
-Publish the framework-dependent single executable:
-
-```sh
-dotnet publish src/OsrsCheckPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
-```
-
-The output is `artifacts/win-x64/OsrsCheckPing.exe`. Keep `SelfContained=false`: the installed Desktop Runtime provides the framework. See [Microsoft's single-file publishing documentation](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview).
-
-The portable core, network adapters, persistence, and core tests target `net10.0`. The desktop and desktop-test projects target `net10.0-windows` and enable Windows targeting so they can be compiled from Linux/macOS. Run the UI smoke tests on Windows with `dotnet test tests/OsrsCheckPing.Desktop.Tests --configuration Release`. Interactive Windows Forms behavior must be verified on Windows.
-
-GitHub Actions runs the portable tests on Linux, builds and tests on Windows, publishes the executable, verifies that the publish directory contains only `OsrsCheckPing.exe`, and smoke-tests starting and closing that executable with the installed runtime.
-
-Windows UI tests also save dashboard and settings screenshots in the **Windows-interface-previews** workflow artifact. These previews use deterministic sample data; production monitoring always uses real network probes.
-
-## Windows acceptance checks
-
-Before distributing a release, test the published executable on Windows with the Desktop Runtime installed:
-
-- Start online and offline, check scan progress and retry/cache behavior, and exit during a scan.
-- Confirm favorites, latency sorting, timeout statuses, session toggles across rescans, and the five-favorite limit. Restart to verify that favorites persist and session toggles reset.
-- Confirm that the dashboard and default settings list show at most 20 worlds including favorites, and that browsing hidden worlds does not start live probes. Leave the app running for a five-minute review and check the countdown and updated selection.
-- Navigate with Tab/Space, use Ctrl+, to open settings, and check at 100%, 150%, and 200% display scaling.
-- Move/resize/maximize the window, exit, and reopen. Disconnect a secondary monitor and verify that the restored window remains visible.
-- Enable each tray option, minimize/close, restore through the tray, open settings, and quit through **Exit**. Confirm live tracking continues while hidden.
-
-## License
-
-[Apache License 2.0](LICENSE). This is an independent utility and is not affiliated with Jagex.
+[Apache License 2.0](LICENSE). Independent software, not affiliated with or endorsed by Jagex.

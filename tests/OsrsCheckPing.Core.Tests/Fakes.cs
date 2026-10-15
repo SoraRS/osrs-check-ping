@@ -22,7 +22,7 @@ internal sealed class FakeProbe : ILatencyProbe
 {
     public ConcurrentQueue<string> Hosts { get; } = [];
     public Func<string, CancellationToken, Task<ProbeResult>> Handler { get; set; } =
-        (_, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, 40));
+        (_, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, 20));
     public Task<ProbeResult> ProbeAsync(string host, CancellationToken cancellationToken)
     {
         Hosts.Enqueue(host);

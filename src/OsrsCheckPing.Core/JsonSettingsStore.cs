@@ -10,9 +10,31 @@ public sealed class JsonSettingsStore(string directory) : ISettingsStore
     public static string DefaultDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OsrsCheckPing");
 
-    public async Task<AppSettings> LoadSettingsAsync(CancellationToken cancellationToken) =>
-        (await ReadAsync<AppSettings>("settings.json", cancellationToken).ConfigureAwait(false)
-            ?? new AppSettings()).Sanitize();
+    public async Task<AppSettings> LoadSettingsAsync(CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(directory, "settings.json");
+        if (!File.Exists(path)) return new AppSettings();
+        await using var stream = File.OpenRead(path);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await stream.DisposeAsync().ConfigureAwait(false);
+        var settings = document.RootElement.Deserialize<AppSettings>(JsonOptions)
+            ?? throw new InvalidDataException("settings.json is empty.");
+        bool legacy = !document.RootElement.TryGetProperty(nameof(AppSettings.SchemaVersion), out var version) ||
+            version.GetInt32() < AppSettings.CurrentSchemaVersion;
+        settings = (settings with
+        {
+            SchemaVersion = Math.Max(settings.SchemaVersion, AppSettings.CurrentSchemaVersion),
+            LatencyCutoffMs = legacy && settings.LatencyCutoffMs == 60 ? 30 : settings.LatencyCutoffMs
+        }).Sanitize();
+        // Commit the marker before returning, including when the user never opens settings.
+        if (legacy)
+        {
+            try { await SaveSettingsAsync(settings, cancellationToken).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OperationCanceledException)
+            { throw new SettingsMigrationSaveException(settings, error); }
+        }
+        return settings;
+    }
 
     public Task SaveSettingsAsync(AppSettings settings, CancellationToken cancellationToken) =>
         WriteAsync("settings.json", settings.Sanitize(), cancellationToken);
@@ -69,4 +91,11 @@ public sealed class JsonSettingsStore(string directory) : ISettingsStore
             }
         }
     }
+}
+
+// A readable legacy file must not lose its preferences just because the upgraded file cannot be written.
+public sealed class SettingsMigrationSaveException(AppSettings settings, Exception innerException)
+    : IOException("The upgraded settings could not be saved.", innerException)
+{
+    public AppSettings Settings { get; } = settings;
 }

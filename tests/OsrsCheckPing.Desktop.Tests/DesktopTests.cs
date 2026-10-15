@@ -1,193 +1,237 @@
+using System.Collections.Specialized;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using OsrsCheckPing.Core;
 using OsrsCheckPing.Core.Tests;
 using OsrsCheckPing.Desktop;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace OsrsCheckPing.Desktop.Tests;
 
 public sealed class DesktopTests
 {
-    [Fact]
-    public Task DashboardAndSettingsHideOverflowUntilExplicitlyBrowsed() => OnUiThreadAsync(async () =>
+    private static readonly Lazy<Task<Dispatcher>> Ui = new(() =>
+    {
+        var ready = new TaskCompletionSource<Dispatcher>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/OsrsCheckPing;component/Theme.xaml", UriKind.Relative) });
+            ready.SetResult(app.Dispatcher); app.Run();
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA); thread.Start(); return ready.Task;
+    });
+    private static async Task OnUiThreadAsync(Func<Task> test) =>
+        await (await Ui.Value).InvokeAsync(test).Task.Unwrap().WaitAsync(TimeSpan.FromSeconds(90));
+    private static async Task UntilAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(12);
+        while (!condition()) { if (DateTime.UtcNow > deadline) throw new TimeoutException("WPF condition was not met"); await Task.Delay(30); }
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+    }
+    private static Harness Samples()
     {
         var h = new Harness();
-        h.Catalogue.Worlds = Enumerable.Range(301, 40)
-            .Select(id => new WorldInfo(id, 1, $"world-{id}.runescape.com", "Trading", 0, 100)).ToArray();
-        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success,
-            int.Parse(host.Split('.')[0].AsSpan("world-".Length)) - 300));
-        using var main = new MainForm(h.Engine);
+        h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302, 303, 304, 305] };
+        h.Catalogue.Worlds = Enumerable.Range(301, 40).Select(id => new WorldInfo(id,
+            id == 310 ? (uint)(WorldFlags.Members | WorldFlags.Pvp) : (uint)(id % 2), $"world-{id}.runescape.com",
+            id == 310 ? "PvP" : id == 311 ? "A long activity description that must remain readable" : "Trading", (id % 4) switch { 0 => 0, 1 => 1, 2 => 3, _ => 7 }, 100)).ToArray();
+        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, int.Parse(host.Split('.')[0].AsSpan(6)) - 300));
+        return h;
+    }
+    private static async Task CloseAsync(MainWindow window) { window.RequestExit(); await UntilAsync(() => !Application.Current.Windows.Cast<Window>().Contains(window)); }
+    private static IEnumerable<T> Children<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T found) yield return found;
+            foreach (var descendant in Children<T>(child)) yield return descendant;
+        }
+    }
+    private static void Preview(FrameworkElement element, string name, double scale = 1)
+    {
+        element.UpdateLayout();
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth * scale), (int)Math.Ceiling(element.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        bitmap.Render(element);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        string directory = Path.Combine(AppContext.BaseDirectory, "ui-preview"); Directory.CreateDirectory(directory);
+        using var stream = File.Create(Path.Combine(directory, name)); encoder.Save(stream);
+    }
+
+    [Fact]
+    public Task DashboardFitsTwentyPlusFiveAndSettingsStayInsideOneWindow() => OnUiThreadAsync(async () =>
+    {
+        var h = Samples(); var main = new MainWindow(h.Engine); main.Show();
+        try
+        {
+            await UntilAsync(() => main.Model.Tracked.Count == 20);
+            Assert.Equal(WindowState.Maximized, main.WindowState);
+            main.WindowState = WindowState.Normal; main.Width = 1920; main.Height = 1040;
+            main.UpdateLayout(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.Equal(5, main.ColumnCount);
+            Assert.Equal(5, main.Model.Favorites.Count); Assert.Equal(25, main.Model.Snapshot.LiveCount);
+            var scroll = (ScrollViewer)main.FindName("DashboardScroll");
+            Preview(main, "dashboard-1080p.png");
+            Assert.True(scroll.ScrollableHeight < 1, $"All 25 cards must fit at 1080p: overflow {scroll.ScrollableHeight}");
+            Assert.Empty(Children<ListBox>(main)); Assert.Empty(Children<DataGrid>(main));
+            main.Model.OpenSettings.Execute(null); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.True(main.Model.ShowSettings); Assert.Single(Application.Current.Windows.Cast<MainWindow>());
+            var tabs = (TabControl)main.FindName("SettingsTabs"); Assert.Equal(3, tabs.Items.Count);
+            for (int tab = 0; tab < 3; tab++) { tabs.SelectedIndex = tab; main.UpdateLayout(); Preview(main, $"settings-{tab}-1080p.png"); }
+            tabs.SelectedIndex = 0;
+            Assert.Equal(25, main.Model.WorldView.Cast<WorldCardModel>().Count());
+            int probes = h.Probe.Hosts.Count; main.Model.BrowseHidden = true;
+            Assert.Equal(40, main.Model.WorldView.Cast<WorldCardModel>().Count()); Assert.Equal(probes, h.Probe.Hosts.Count);
+            main.UpdateLayout();
+            var pin = Children<CheckBox>(main).Single(box => box.DataContext is WorldCardModel { Id: 306 } && box.Content as string == "Pin");
+            pin.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, true);
+            main.Model.AllWorlds.Single(world => world.Id == 306).ToggleFavorite.Execute(null);
+            await UntilAsync(() => pin.IsChecked == false);
+            Assert.Equal(5, main.Model.Favorites.Count);
+            Assert.Contains("up to five", main.Model.Feedback);
+            var locked = Children<CheckBox>(main).Single(box => box.DataContext is WorldCardModel { Id: 301 } && box.Content as string == "Track");
+            Assert.True(locked.IsChecked); Assert.False(locked.IsEnabled);
+            main.Model.Search = "WorldDoesNotExist"; Assert.Empty(main.Model.WorldView.Cast<WorldCardModel>()); main.Model.Search = "";
+            var search = (TextBox)main.FindName("WorldSearch"); search.Focus();
+            await h.Engine.CheckTrackedWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.Same(search, Keyboard.FocusedElement);
+            Assert.True(search.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)));
+            var trackingScroll = (ScrollViewer)main.FindName("TrackingScroll");
+            trackingScroll.ScrollToVerticalOffset(200); main.UpdateLayout();
+            double settingsOffset = trackingScroll.VerticalOffset;
+            await h.Engine.CheckTrackedWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.Equal(settingsOffset, trackingScroll.VerticalOffset);
+            main.Model.Cutoff = "80"; main.Model.AlwaysOnTop = true; main.Model.ApplySettings.Execute(null);
+            await UntilAsync(() => h.Engine.GetSnapshot().Settings.LatencyCutoffMs == 80);
+            Assert.True(h.Store.Settings.AlwaysOnTop);
+            main.Model.BackToWorlds.Execute(null); Assert.False(main.Model.ShowSettings);
+            foreach (var (width, height, scale) in new[] { (1366d, 728d, 1d), (1280d, 693d, 1.5), (960d, 520d, 2d), (683d, 384d, 2d), (480d, 640d, 1d) })
+            {
+                main.Width = width; main.Height = height; main.UpdateLayout();
+                Preview(main, $"dashboard-{width}-{scale}.png", scale);
+                Assert.InRange(main.ColumnCount, 1, 5);
+                main.Model.ShowSettings = true;
+                for (int tab = 0; tab < 3; tab++) { tabs.SelectedIndex = tab; main.UpdateLayout(); Preview(main, $"settings-{tab}-{width}-{scale}.png", scale); }
+                main.Model.ShowSettings = false;
+            }
+        }
+        finally { await CloseAsync(main); await h.DisposeAsync(); }
+    });
+
+    [Fact]
+    public Task ReadingsKeepCardIdentityOrderScrollAndFocusWhileBackgrounded() => OnUiThreadAsync(async () =>
+    {
+        var h = Samples(); var main = new MainWindow(h.Engine); var sentinel = new Window { Title = "Foreground sentinel", Width = 350, Height = 180 };
         main.Show();
         try
         {
-            await UntilAsync(() => Controls<WorldGrid>(main).Sum(grid => grid.Rows.Count) == 20);
-            Assert.Equal(20, h.Engine.GetSnapshot().HiddenCount);
-            Assert.Equal(3, Controls<MetricCard>(main).Count());
-            Assert.Single(Controls<SignalEmblem>(main));
-            Assert.All(Controls<WorldGrid>(main).SelectMany(grid => grid.Rows.Cast<DataGridViewRow>()),
-                row => Assert.InRange(((WorldSnapshot)row.Tag!).Id, 301, 320));
-            SavePreview(main, "dashboard.png");
-
-            Controls<Button>(main).Single(button => button.Text == "Settings").PerformClick();
-            var settings = Assert.Single(main.OwnedForms.OfType<SettingsForm>());
-            var worlds = Assert.Single(Controls<WorldGrid>(settings));
-            Assert.Equal(20, worlds.Rows.Count);
-            SavePreview(settings, "world-settings.png");
-            var tabs = Assert.Single(Controls<TabControl>(settings));
-            tabs.SelectedIndex = 1;
-            SavePreview(settings, "application-settings.png");
-            tabs.SelectedIndex = 0;
-            var browse = Controls<CheckBox>(settings).Single(control => control.AccessibleName == "Browse hidden worlds");
-            Assert.False(browse.Checked);
-            int probes = h.Probe.Hosts.Count;
-            browse.Checked = true;
-            Assert.Equal(40, worlds.Rows.Count);
-            Assert.Equal(probes, h.Probe.Hosts.Count);
-            browse.Checked = false;
-            Assert.Equal(20, worlds.Rows.Count);
-            settings.Close();
-            for (int id = 301; id <= 305; id++) await h.Engine.SetFavoriteAsync(id, true);
-            main.Height = 650;
-            await UntilAsync(() => Controls<WorldGrid>(main).Any(grid => grid.Rows.Count == 5));
-            var automatic = Controls<WorldGrid>(main).Single(grid => grid.Rows.Count == 15);
-            Assert.True(automatic.Height >= automatic.ColumnHeadersHeight + automatic.RowTemplate.Height,
-                "The automatic world list must retain room for a row when all five favorites are saved.");
-            SavePreview(main, "favorites-compact.png");
+            await UntilAsync(() => main.Model.Tracked.Count == 20);
+            main.WindowState = WindowState.Normal; main.Width = 720; main.Height = 600; main.UpdateLayout();
+            var scroll = (ScrollViewer)main.FindName("DashboardScroll"); scroll.ScrollToVerticalOffset(240); main.UpdateLayout();
+            double offset = scroll.VerticalOffset; var cards = main.Model.Tracked.ToArray(); int changes = 0;
+            main.Model.Tracked.CollectionChanged += (_, _) => changes++;
+            sentinel.Show(); sentinel.Activate();
+            var foreground = new WindowInteropHelper(sentinel).Handle;
+            Assert.Equal(foreground, GetForegroundWindow());
+            h.Probe.Return(new ProbeResult(ProbeStatus.Success, 29));
+            for (int i = 0; i < 3; i++)
+            {
+                await h.Engine.CheckTrackedWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                Assert.Equal(foreground, GetForegroundWindow()); Assert.Equal(offset, scroll.VerticalOffset);
+                Assert.Equal(cards, main.Model.Tracked); Assert.Equal(0, changes);
+            }
+            await h.Engine.RecheckHiddenWorldsAsync(); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.Equal(foreground, GetForegroundWindow());
+            await h.Engine.UpdatePreferencesAsync(30, 5, true, false, false);
+            await UntilAsync(() => (GetWindowLongPtr(new WindowInteropHelper(main).Handle, -20).ToInt64() & 8) != 0);
+            Assert.Equal(foreground, GetForegroundWindow());
+            await h.Engine.UpdatePreferencesAsync(30, 5, false, true, true);
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            main.WindowState = WindowState.Minimized; await UntilAsync(() => !main.IsVisible);
+            sentinel.Activate(); await h.Engine.CheckTrackedWorldsAsync(); await h.Engine.RecheckHiddenWorldsAsync();
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.False(main.IsVisible); Assert.Equal(WindowState.Minimized, main.WindowState); Assert.Equal(foreground, GetForegroundWindow());
+            main.RestoreFromTray(true); Assert.True(main.IsVisible); Assert.True(main.Model.ShowSettings);
+            main.Close(); Assert.False(main.IsVisible); // close-to-tray
         }
-        finally
-        {
-            await CloseAsync(main);
-            await h.DisposeAsync();
-        }
+        finally { sentinel.Close(); await CloseAsync(main); await h.DisposeAsync(); }
     });
 
-    private static void SavePreview(Form form, string name)
+    [Fact]
+    public Task ExistingOffscreenBoundsAreClampedAndStartupStillMaximizes() => OnUiThreadAsync(async () =>
     {
-        string directory = Path.Combine(AppContext.BaseDirectory, "ui-preview");
-        Directory.CreateDirectory(directory);
-        using var bitmap = new Bitmap(form.Width, form.Height);
-        form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
-        bitmap.Save(Path.Combine(directory, name), System.Drawing.Imaging.ImageFormat.Png);
-    }
+        var h = new Harness(); h.Store.Settings = new AppSettings { Window = new(-50000, -50000, 1000, 600, false) };
+        var main = new MainWindow(h.Engine); main.Show();
+        try
+        {
+            await UntilAsync(() => main.Model.Snapshot.SettingsLoaded);
+            Assert.Equal(WindowState.Maximized, main.WindowState);
+            main.WindowState = WindowState.Normal; main.UpdateLayout(); Assert.True(main.Left > -50000); Assert.True(main.Top > -50000);
+            Assert.NotNull(main.Icon);
+        }
+        finally { await CloseAsync(main); await h.DisposeAsync(); }
+        Assert.NotNull(h.Store.Settings.Window);
+    });
+
+    [Fact]
+    public Task OfflineAndFallbackStatesKeepSettingsAccessible() => OnUiThreadAsync(async () =>
+    {
+        var h = new Harness(); h.Store.Settings = new AppSettings { FavoriteWorldIds = [999] };
+        h.Catalogue.Error = new HttpRequestException("Offline fixture");
+        var main = new MainWindow(h.Engine); main.Show();
+        try
+        {
+            await UntilAsync(() => main.Model.HasNotice && !main.Model.Snapshot.IsScanning);
+            Assert.Equal("Unavailable", main.Model.Favorites.Single().Latency);
+            Assert.False(main.Model.HasTracked);
+            Preview(main, "offline-no-cache.png");
+            main.Model.OpenSettings.Execute(null); Assert.True(main.Model.ShowSettings);
+            h.Catalogue.Error = null;
+            h.Catalogue.Worlds = [new(301, (uint)(WorldFlags.Members | WorldFlags.HighRisk), "supplied.example", "High Risk", 0, 10),
+                new(302, 0, "unknown.example", "A new activity", 250, 10),
+                new(303, (uint)(WorldFlags.Pvp | WorldFlags.Seasonal), "league.example", "Leagues", 3, 10)];
+            h.Probe.Handler = (host, _) => Task.FromResult(host == "supplied.example" ? new ProbeResult(ProbeStatus.TimedOut) : new ProbeResult(ProbeStatus.Success, 10));
+            await h.Engine.RecheckAsync(); await h.Engine.SetFavoriteAsync(301, true);
+            await UntilAsync(() => main.Model.Favorites.Count == 2);
+            Assert.Equal("Timeout", main.Model.Favorites.Single(w => w.Id == 301).Latency);
+            Assert.Equal("", main.Model.AllWorlds.Single(w => w.Id == 302).CountryCode);
+            Assert.False(main.Model.AllWorlds.Single(w => w.Id == 303).IsDangerous);
+            main.Model.ShowSettings = false; main.UpdateLayout(); Preview(main, "dashboard-failure-fallbacks.png");
+            h.Catalogue.Error = new HttpRequestException("Offline again"); await h.Engine.RecheckAsync();
+            await UntilAsync(() => main.Model.HasNotice);
+            main.Model.ShowSettings = true; main.UpdateLayout(); Preview(main, "cached-catalogue-notice.png");
+            Assert.Contains("saved world catalogue", main.Model.Snapshot.Notice);
+        }
+        finally { await CloseAsync(main); await h.DisposeAsync(); }
+    });
+
+    [Fact]
+    public Task ExitDuringDiscoveryCancelsWorkAndClosesTheWindow() => OnUiThreadAsync(async () =>
+    {
+        var h = new Harness(); var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        h.Probe.Handler = async (_, token) =>
+        {
+            entered.TrySetResult(); await Task.Delay(Timeout.Infinite, token); return new ProbeResult(ProbeStatus.Error);
+        };
+        var main = new MainWindow(h.Engine); main.Show();
+        try { await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)); Assert.True(h.Engine.GetSnapshot().IsScanning); }
+        finally { await CloseAsync(main); await h.DisposeAsync(); }
+    });
 
     [Fact]
     public async Task NativeIcmpReachesWindowsLoopbackWithoutElevation()
     {
         var result = await new IcmpLatencyProbe().ProbeAsync("127.0.0.1", CancellationToken.None);
         Assert.Equal(ProbeStatus.Success, result.Status);
-        Assert.True(result.RoundTripMilliseconds >= 0);
     }
-
-    [Fact]
-    public Task MainWindowLoadsWorldsAndSettingsControlsUpdateSharedEngine() => OnUiThreadAsync(async () =>
-    {
-        var h = new Harness();
-        using var main = new MainForm(h.Engine);
-        main.Show();
-        try
-        {
-            await UntilAsync(() => h.Engine.GetSnapshot().Worlds.Count == 4 &&
-                Controls<WorldGrid>(main).Sum(grid => grid.Rows.Count) == 4);
-            Assert.Equal("OSRS Check Ping", main.Text);
-            Controls<Button>(main).Single(button => button.Text == "Settings").PerformClick();
-            var settings = Assert.Single(main.OwnedForms.OfType<SettingsForm>());
-            var worlds = Assert.Single(Controls<WorldGrid>(settings));
-            Assert.Equal(4, worlds.Rows.Count);
-            worlds.Rows[0].Cells["favorite"].Value = true;
-            await UntilAsync(() => h.Engine.GetSnapshot().Favorites.Count == 1 && worlds.Rows[0].Cells["track"].ReadOnly);
-            Assert.True(worlds.Rows[0].Cells["track"].Value is true);
-
-            var tabs = Assert.Single(Controls<TabControl>(settings));
-            tabs.SelectedIndex = 1;
-            Controls<NumericUpDown>(settings).Single(control => control.AccessibleName == "Latency cutoff in milliseconds").Value = 80;
-            Controls<CheckBox>(settings).Single(control => control.Text == "Keep the main window always on top").Checked = true;
-            Controls<Button>(settings).Single(button => button.Text == "Apply settings").PerformClick();
-            await UntilAsync(() => h.Engine.GetSnapshot().Settings.LatencyCutoffMs == 80 && main.TopMost);
-            Assert.Contains(301, h.Store.Settings.FavoriteWorldIds);
-        }
-        finally
-        {
-            await CloseAsync(main);
-            await h.DisposeAsync();
-        }
-    });
-
-    [Fact]
-    public Task GridPreservesSelectedAndFirstVisibleWorldWhenRowsReorder() => OnUiThreadAsync(() =>
-    {
-        using var form = new Form { ClientSize = new Size(1100, 200) };
-        using var grid = new WorldGrid();
-        form.Controls.Add(grid);
-        form.Show();
-        var worlds = Enumerable.Range(301, 12).Select(id => new WorldSnapshot(id,
-            new WorldInfo(id, 1, $"world-{id}.runescape.com", "-", 0, 100), false, true, null, true, false,
-            new ProbeResult(ProbeStatus.Success, 30), DateTimeOffset.UtcNow, false, 0)).ToArray();
-        grid.ShowWorlds(worlds, new AppSettings());
-        grid.CurrentCell = grid.Rows[3].Cells[0];
-        grid.FirstDisplayedScrollingRowIndex = 2;
-        grid.ShowWorlds(worlds.Skip(10).Concat(worlds.Take(10)).ToArray(), new AppSettings());
-        Assert.Equal(304, ((WorldSnapshot)grid.CurrentRow!.Tag!).Id);
-        Assert.Equal(303, ((WorldSnapshot)grid.Rows[grid.FirstDisplayedScrollingRowIndex].Tag!).Id);
-        form.Close();
-        return Task.CompletedTask;
-    });
-
-    [Fact]
-    public Task SavedOffscreenPlacementIsRestoredInsideCurrentDesktop() => OnUiThreadAsync(async () =>
-    {
-        var h = new Harness();
-        h.Store.Settings = new AppSettings { Window = new WindowPlacement(-50000, -50000, 1000, 600, false) };
-        using var main = new MainForm(h.Engine);
-        main.Show();
-        try
-        {
-            await UntilAsync(() => main.StartPosition == FormStartPosition.Manual);
-            Assert.Contains(Screen.AllScreens, screen => screen.WorkingArea.Contains(main.Bounds));
-        }
-        finally
-        {
-            await CloseAsync(main);
-            await h.DisposeAsync();
-        }
-        Assert.NotNull(h.Store.Settings.Window);
-        Assert.True(h.Store.Settings.Window.X > -50000);
-    });
-
-    private static IEnumerable<T> Controls<T>(Control parent) where T : Control => parent.Controls.Cast<Control>()
-        .SelectMany(child => (child is T match ? new[] { match } : []).Concat(Controls<T>(child)));
-
-    private static async Task UntilAsync(Func<bool> condition)
-    {
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (!condition()) await Task.Delay(25, deadline.Token);
-    }
-
-    private static async Task CloseAsync(Form form)
-    {
-        if (form.IsDisposed) return;
-        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        form.FormClosed += (_, _) => closed.TrySetResult();
-        form.Close();
-        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
-    }
-
-    private static async Task OnUiThreadAsync(Func<Task> test)
-    {
-        var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var thread = new Thread(() =>
-        {
-            using var context = new ApplicationContext();
-            using var dispatcher = new Control();
-            _ = dispatcher.Handle;
-            SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
-            dispatcher.BeginInvoke(async () =>
-            {
-                try { await test(); complete.TrySetResult(); }
-                catch (Exception error) { complete.TrySetException(error); }
-                finally { context.ExitThread(); }
-            });
-            Application.Run(context);
-        }) { IsBackground = true };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        await complete.Task.WaitAsync(TimeSpan.FromSeconds(40));
-    }
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
 }

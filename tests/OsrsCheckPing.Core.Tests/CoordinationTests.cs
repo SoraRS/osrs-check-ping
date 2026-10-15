@@ -130,7 +130,7 @@ public sealed class CoordinationTests
         release.TrySetResult();
         await live;
         Assert.All(h.Engine.GetSnapshot().Worlds, w => Assert.Equal(0, w.ConsecutiveBadReadings));
-        Assert.Equal(40, h.World().LatestResult!.RoundTripMilliseconds);
+        Assert.Equal(20, h.World().LatestResult!.RoundTripMilliseconds);
     }
 
     [Fact]

@@ -12,7 +12,7 @@ public sealed class PersistenceTests : IDisposable
     {
         var store = new JsonSettingsStore(_directory);
         var defaults = await store.LoadSettingsAsync(CancellationToken.None);
-        Assert.Equal(60, defaults.LatencyCutoffMs);
+        Assert.Equal(30, defaults.LatencyCutoffMs);
         Assert.Equal(5, defaults.RefreshIntervalSeconds);
         Assert.Null(await store.LoadCatalogueAsync(CancellationToken.None));
         var settings = new AppSettings
@@ -76,9 +76,30 @@ public sealed class PersistenceTests : IDisposable
         Directory.CreateDirectory(_directory);
         await File.WriteAllTextAsync(Path.Combine(_directory, "settings.json"), "broken json");
         var store = new JsonSettingsStore(_directory);
-        await Assert.ThrowsAsync<JsonException>(() => store.LoadSettingsAsync(CancellationToken.None));
+        await Assert.ThrowsAnyAsync<JsonException>(() => store.LoadSettingsAsync(CancellationToken.None));
         await File.WriteAllTextAsync(Path.Combine(_directory, "worlds.json"), """{"Worlds":[],"FetchedAt":"2026-01-01T00:00:00Z"}""");
         await Assert.ThrowsAsync<InvalidDataException>(() => store.LoadCatalogueAsync(CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(60, 30)]
+    [InlineData(85, 85)]
+    [InlineData(30, 30)]
+    public async Task LegacyCutoffMigratesOnceAndLaterSixtyIsRespected(int oldCutoff, int expected)
+    {
+        Directory.CreateDirectory(_directory);
+        await File.WriteAllTextAsync(Path.Combine(_directory, "settings.json"),
+            $$"""{"LatencyCutoffMs":{{oldCutoff}},"FavoriteWorldIds":[301],"AlwaysOnTop":true}""");
+        var store = new JsonSettingsStore(_directory);
+        var migrated = await store.LoadSettingsAsync(CancellationToken.None);
+        Assert.Equal(expected, migrated.LatencyCutoffMs);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.SchemaVersion);
+        Assert.True(migrated.AlwaysOnTop);
+        Assert.Equal([301], migrated.FavoriteWorldIds);
+        var restart = await new JsonSettingsStore(_directory).LoadSettingsAsync(CancellationToken.None);
+        Assert.Equal(expected, restart.LatencyCutoffMs);
+        await store.SaveSettingsAsync(migrated with { LatencyCutoffMs = 60 }, CancellationToken.None);
+        Assert.Equal(60, (await new JsonSettingsStore(_directory).LoadSettingsAsync(CancellationToken.None)).LatencyCutoffMs);
     }
 
     public void Dispose()

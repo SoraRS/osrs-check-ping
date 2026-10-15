@@ -2,7 +2,8 @@ namespace OsrsCheckPing.Core;
 
 public sealed class MonitoringEngine : IAsyncDisposable
 {
-    public const int MaximumTrackedWorlds = 20;
+    public const int MaximumAutomaticWorlds = 20;
+    public const int MaximumFavoriteWorlds = 5;
     public static TimeSpan HiddenRecheckInterval => TimeSpan.FromMinutes(5);
 
     private sealed class WorldState(int id, WorldInfo? world)
@@ -93,6 +94,11 @@ public sealed class MonitoringEngine : IAsyncDisposable
             var settings = await _store.LoadSettingsAsync(_stopToken).ConfigureAwait(false);
             lock (_sync)
                 _settings = settings.Sanitize();
+        }
+        catch (SettingsMigrationSaveException error)
+        {
+            lock (_sync) _settings = error.Settings.Sanitize();
+            SetSettingsNotice("Upgraded settings could not be saved. Your saved choices are loaded for this session. " + error.InnerException?.Message);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
@@ -347,7 +353,7 @@ public sealed class MonitoringEngine : IAsyncDisposable
                 return false;
             if (enabled && !_manualTracking.GetValueOrDefault(worldId) &&
                 _worlds.Values.Count(w => w.World is not null && !IsFavorite(w.Id) && _manualTracking.GetValueOrDefault(w.Id))
-                    >= MaximumTrackedWorlds - _settings.FavoriteWorldIds.Count)
+                    >= MaximumAutomaticWorlds)
                 return false;
             _manualTracking[worldId] = enabled;
             world.Removed = false;
@@ -384,7 +390,7 @@ public sealed class MonitoringEngine : IAsyncDisposable
             var ids = _settings.FavoriteWorldIds.ToList();
             if (favorite && !ids.Contains(worldId))
             {
-                if (ids.Count == 5)
+                if (ids.Count == MaximumFavoriteWorlds)
                     return false;
                 ids.Add(worldId);
             }
@@ -520,7 +526,7 @@ public sealed class MonitoringEngine : IAsyncDisposable
     private void SelectTrackedWorlds()
     {
         var selected = _worlds.Values.Where(w => w.World is not null && IsFavorite(w.Id)).Select(w => w.Id).ToHashSet();
-        int automaticSlots = MaximumTrackedWorlds - _settings.FavoriteWorldIds.Count;
+        int automaticSlots = MaximumAutomaticWorlds;
         var candidates = _worlds.Values.Where(w => w.World is not null && !IsFavorite(w.Id) && !w.Removed &&
                 (_manualTracking.TryGetValue(w.Id, out bool enabled) ? enabled : w.AutomaticallyEligible))
             .OrderByDescending(w => _manualTracking.GetValueOrDefault(w.Id))

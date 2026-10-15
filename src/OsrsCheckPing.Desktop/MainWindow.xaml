@@ -1,0 +1,261 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsCheckPing.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" x:Class="OsrsCheckPing.Desktop.MainWindow" UseLayoutRounding="True" SnapsToDevicePixels="True" Title="OSRS Check Ping" Width="1280" Height="850" MinWidth="420" MinHeight="320" WindowState="Maximized" Background="#151B1E" Foreground="#EFE8DA" FontFamily="Segoe UI" Icon="Assets/app.ico" WindowStyle="None" ResizeMode="CanResize" Loaded="OnLoaded" Closing="OnClosing" StateChanged="OnStateChanged" SourceInitialized="OnSourceInitialized">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="7" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
+  </shell:WindowChrome.WindowChrome>
+  <Window.InputBindings>
+    <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettings}"/>
+    <KeyBinding Key="Escape" Command="{Binding BackToWorlds}"/>
+  </Window.InputBindings>
+  <Grid>
+    <Image Source="Assets/observatory.png" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0.75" IsHitTestVisible="False"/>
+    <Rectangle IsHitTestVisible="False">
+      <Rectangle.Fill>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#C9161E22"/>
+          <GradientStop Offset="0.65" Color="#B3192022"/>
+          <GradientStop Offset="1" Color="#78191E20"/>
+        </LinearGradientBrush>
+      </Rectangle.Fill>
+    </Rectangle>
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="44"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Border Background="#CB151B1E" BorderBrush="#65583F" BorderThickness="0,0,0,1">
+        <Grid>
+          <StackPanel Orientation="Horizontal" Margin="18,0">
+            <Image Source="Assets/app.ico" Width="21" Height="21"/>
+            <TextBlock Text="OSRS CHECK PING" FontSize="11" Foreground="#C6BDAA" VerticalAlignment="Center" Margin="10,0"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button x:Name="MinimizeButton" Style="{StaticResource IconButton}" Width="48" AutomationProperties.Name="Minimize" Click="MinimizeClick">
+              <Path Data="M0,0 L12,0" Stroke="#DACCB3" StrokeThickness="1" Width="12"/>
+            </Button>
+            <Button x:Name="MaximizeButton" Style="{StaticResource IconButton}" Width="48" AutomationProperties.Name="Maximize or restore" Click="MaximizeClick">
+              <Path Data="M0,0 L10,0 L10,10 L0,10 Z" Stroke="#DACCB3" StrokeThickness="1" Width="11" Height="11"/>
+            </Button>
+            <Button Style="{StaticResource IconButton}" Width="48" AutomationProperties.Name="Close" Click="CloseClick">
+              <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="#DACCB3" StrokeThickness="1" Width="11" Height="11"/>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Grid Grid.Row="1" Margin="32,18,32,24">
+        <Grid x:Name="Dashboard" Visibility="{Binding ShowDashboard, Converter={StaticResource VisibleWhenTrue}}">
+          <Grid.RowDefinitions>
+            <RowDefinition x:Name="DashboardHeaderRows" Height="96"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <Image Source="Assets/app.ico" Width="52" Height="52" Margin="0,0,16,0"/>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="OSRS" FontSize="13" Foreground="{StaticResource Gold}"/>
+                <TextBlock Text="Check Ping" FontFamily="Georgia" FontSize="30"/>
+              </StackPanel>
+            </StackPanel>
+            <StackPanel x:Name="Metrics" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0">
+              <StackPanel Margin="0,0,36,0">
+                <TextBlock Text="BEST CONNECTION" Style="{StaticResource Label}"/>
+                <TextBlock Text="{Binding BestConnection}" FontSize="27" Foreground="#9CCFB3"/>
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Text="LIVE WORLDS" Style="{StaticResource Label}"/>
+                <TextBlock Text="{Binding LiveCount}" FontSize="27" Foreground="{StaticResource Gold}"/>
+              </StackPanel>
+            </StackPanel>
+            <Grid Grid.Column="2" VerticalAlignment="Center">
+              <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Command="{Binding OpenSettings}" AutomationProperties.Name="Settings" ToolTip="Settings (Ctrl+,)" MouseEnter="GearEnter" MouseLeave="GearLeave">
+                <Path x:Name="Gear" Data="M9,0 L15,0 L16,4 L19,6 L23,5 L26,10 L23,13 L23,16 L26,19 L23,24 L19,23 L16,25 L15,29 L9,29 L8,25 L5,23 L1,24 L-2,19 L1,16 L1,13 L-2,10 L1,5 L5,6 L8,4 Z M17,14.5 A5,5 0 1 1 7,14.5 A5,5 0 1 1 17,14.5" Fill="{StaticResource Gold}" Width="27" Height="27" Stretch="Uniform" RenderTransformOrigin="0.5,0.5">
+                  <Path.RenderTransform>
+                    <RotateTransform/>
+                  </Path.RenderTransform>
+                </Path>
+              </Button>
+              <Ellipse Fill="#EF9B83" Width="7" Height="7" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="{Binding HasNotice, Converter={StaticResource VisibleWhenTrue}}" ToolTip="Connection details are available in settings"/>
+            </Grid>
+          </Grid>
+          <ScrollViewer x:Name="DashboardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+            <StackPanel>
+              <StackPanel Visibility="{Binding HasFavorites, Converter={StaticResource VisibleWhenTrue}}" Margin="0,0,0,18">
+                <StackPanel Orientation="Horizontal" Margin="6,8,0,8">
+                  <Path Data="M5,1 L13,1 L12,8 L16,12 L2,12 L6,8 Z M9,12 L9,20" Width="11" Height="16" Stretch="Uniform" Stroke="{StaticResource Gold}" StrokeThickness="1.5"/>
+                  <TextBlock Text="Always tracked" Foreground="{StaticResource Gold}" Margin="10,0,0,0" FontSize="14"/>
+                </StackPanel>
+                <ItemsControl x:Name="FavoriteCards" ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource WorldCard}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+              <ItemsControl x:Name="WorldCards" ItemsSource="{Binding Tracked}" ItemTemplate="{StaticResource WorldCard}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+              <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" Margin="12,80,12,32" MaxWidth="430">
+                <StackPanel.Style>
+                  <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding HasTracked}" Value="False">
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </StackPanel.Style>
+                <TextBlock Text="{Binding EmptyTitle}" FontFamily="Georgia" FontSize="26" Foreground="{StaticResource Gold}" TextAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding EmptyDescription}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,16,0,24"/>
+                <Button Content="Open connection settings" Command="{Binding OpenSettings}" HorizontalAlignment="Center"/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+        <Grid x:Name="SettingsPage" Visibility="{Binding ShowSettings, Converter={StaticResource VisibleWhenTrue}}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <DockPanel Margin="0,4,0,18">
+            <Button x:Name="BackButton" Content="←  Worlds" Command="{Binding BackToWorlds}" Style="{StaticResource IconButton}" DockPanel.Dock="Left"/>
+            <TextBlock Text="Settings" Style="{StaticResource Heading}" Margin="20,3,0,0"/>
+          </DockPanel>
+          <Border Grid.Row="1" Background="#F0182023" BorderBrush="#60513B" BorderThickness="1" CornerRadius="10" Padding="24">
+            <TabControl x:Name="SettingsTabs">
+              <TabItem Header="World tracking">
+                <ScrollViewer x:Name="TrackingScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <StackPanel>
+                    <WrapPanel Margin="0,0,0,18">
+                      <TextBox x:Name="WorldSearch" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="260" Margin="0,0,20,8" AutomationProperties.Name="Search worlds" ToolTip="Search world number, region, membership or activity"/>
+                      <CheckBox Content="Browse hidden worlds" IsChecked="{Binding BrowseHidden}" VerticalAlignment="Center" Margin="0,0,24,8"/>
+                      <Button x:Name="CheckConnectionButton" Content="Check connection" IsEnabled="{Binding CanCheckConnection}" Command="{Binding CheckConnection}" Margin="0,0,12,8"/>
+                      <Button Content="Reset session choices" Command="{Binding ResetTracking}" Margin="0,0,0,8"/>
+                    </WrapPanel>
+                    <StackPanel Margin="0,0,0,12">
+                      <TextBlock Text="{Binding ScanStatus}" Foreground="{StaticResource Gold}"/>
+                      <ProgressBar Minimum="0" Maximum="{Binding ScanMaximum}" Value="{Binding Snapshot.ScanCompleted}" Height="3" Margin="0,8,0,0" Foreground="{StaticResource Gold}" Background="#343A3B" Visibility="{Binding Snapshot.IsScanning, Converter={StaticResource VisibleWhenTrue}}"/>
+                      <TextBlock Text="{Binding MonitoringStatus}" Foreground="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                      <TextBlock Text="{Binding CatalogueStatus}" Style="{StaticResource Label}" Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding Snapshot.Notice}" Foreground="#F0BB97" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding Feedback}" Foreground="{StaticResource Gold}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="Track applies for this session. Pin up to five worlds to always track them. Hidden readings are scan results." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+                    <ItemsControl ItemsSource="{Binding WorldView}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border BorderBrush="#3F4644" BorderThickness="0,0,0,1" Padding="4,12">
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="130"/>
+                              </Grid.ColumnDefinitions>
+                              <StackPanel>
+                                <WrapPanel>
+                                  <local:FlagGlyph Country="{Binding CountryCode}" Width="26" Height="17" ToolTip="{Binding Region}" Margin="0,0,10,0"/>
+                                  <Path Style="{StaticResource MemberStar}" Margin="0,0,9,0" ToolTip="{Binding Membership}"/>
+                                  <TextBlock Text="{Binding WorldLabel}" Style="{StaticResource DangerText}" ToolTip="{Binding DangerReason}" FontWeight="SemiBold" FontSize="16" Margin="0,0,14,0"/>
+                                  <TextBlock Text="{Binding Latency}" Foreground="{StaticResource Gold}" VerticalAlignment="Center" ToolTip="{Binding ReadingDetails}"/>
+                                  <TextBlock Text="{Binding ReadingLabel}" Foreground="{StaticResource Muted}" FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding Activity}" TextWrapping="Wrap" Margin="0,5,14,0">
+                                  <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                      <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                      <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+                                          <Setter Property="Foreground" Value="#FF9690"/>
+                                        </DataTrigger>
+                                      </Style.Triggers>
+                                    </Style>
+                                  </TextBlock.Style>
+                                </TextBlock>
+                              </StackPanel>
+                              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <CheckBox Content="Track" IsChecked="{Binding IsTracked, Mode=OneWay}" IsEnabled="{Binding CanTrack}" Command="{Binding ToggleTracking}" AutomationProperties.Name="{Binding WorldLabel, StringFormat=Track {0}}"/>
+                                <CheckBox Content="Pin" IsChecked="{Binding IsFavorite, Mode=OneWay}" Command="{Binding ToggleFavorite}" Margin="0,9,0,0" AutomationProperties.Name="{Binding WorldLabel, StringFormat=Pin {0}}"/>
+                              </StackPanel>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </ScrollViewer>
+              </TabItem>
+              <TabItem Header="Application">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+                    <TextBlock Text="Connection monitoring" Style="{StaticResource Heading}"/>
+                    <TextBlock Text="Choose the worlds that qualify for automatic tracking. Changes apply to subsequent readings; use Check connection to find newly eligible worlds immediately." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,22"/>
+                    <WrapPanel>
+                      <StackPanel Width="230" Margin="0,0,24,20">
+                        <TextBlock Text="Acceptable latency (ms)" Style="{StaticResource Label}"/>
+                        <TextBox x:Name="CutoffInput" Text="{Binding Cutoff, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Latency cutoff in milliseconds"/>
+                        <TextBlock Text="1–2,000 ms · default 30" Style="{StaticResource Label}" Margin="0,7,0,0"/>
+                      </StackPanel>
+                      <StackPanel Width="230" Margin="0,0,0,20">
+                        <TextBlock Text="Refresh interval (seconds)" Style="{StaticResource Label}"/>
+                        <TextBox Text="{Binding Interval, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Refresh interval in seconds"/>
+                        <TextBlock Text="1–60 seconds · default 5" Style="{StaticResource Label}" Margin="0,7,0,0"/>
+                      </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="Window &amp; tray" Style="{StaticResource Heading}" Margin="0,16,0,20"/>
+                    <CheckBox Content="Keep the window always on top" IsChecked="{Binding AlwaysOnTop}" Margin="0,0,0,18"/>
+                    <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" Margin="0,0,0,18"/>
+                    <CheckBox Content="Close to the system tray" IsChecked="{Binding CloseToTray}" Margin="0,0,0,18"/>
+                    <TextBlock Text="The app starts maximized. Your restored window bounds are remembered. When close-to-tray is enabled, choose Exit from the tray menu to quit." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,24"/>
+                    <Button Content="Apply settings" Command="{Binding ApplySettings}" HorizontalAlignment="Left"/>
+                    <TextBlock Text="{Binding Feedback}" Foreground="{StaticResource Gold}" TextWrapping="Wrap" Margin="0,16,0,0"/>
+                    <TextBlock Text="{Binding Snapshot.Notice}" Foreground="#F0BB97" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                  </StackPanel>
+                </ScrollViewer>
+              </TabItem>
+              <TabItem Header="About">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel MaxWidth="700" HorizontalAlignment="Left">
+                    <Image Source="Assets/app.ico" Width="76" Height="76" HorizontalAlignment="Left" Margin="0,0,0,20"/>
+                    <TextBlock Text="OSRS Check Ping" Style="{StaticResource Heading}"/>
+                    <TextBlock Text="{Binding Version}" Foreground="{StaticResource Gold}" Margin="0,0,0,24"/>
+                    <TextBlock Text="Find a world that feels closer." FontFamily="Georgia" FontSize="22" Margin="0,0,0,14"/>
+                    <TextBlock Text="An independent connection monitor for Old School RuneScape. Network latency is one part of the experience; these readings do not measure server ticks or guarantee in-game performance." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,20"/>
+                    <TextBlock Text="Your data stays on this device. The app downloads Jagex's public world catalogue and sends ICMP probes to its supplied hosts. It has no account login, analytics, or stored latency history." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,20"/>
+                    <TextBlock Margin="0,0,0,14">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-check-ping" RequestNavigate="OpenLink">Project &amp; downloads</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,0,14">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-check-ping/issues" RequestNavigate="OpenLink">Report a problem</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,0,14">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-check-ping/blob/main/LICENSE" RequestNavigate="OpenLink">Apache 2.0 license</Hyperlink>
+                    </TextBlock>
+                    <Expander Header="Privacy" Foreground="{StaticResource Gold}" Margin="0,0,0,18">
+                      <TextBlock Text="The app stores settings.json and worlds.json under %LOCALAPPDATA%\OsrsCheckPing. Latency samples and session choices stay in memory. DNS, Jagex's catalogue service, and the world hosts receive ordinary network traffic, including your IP address. About links open your browser only when clicked. Fully exit and delete the data folder to remove saved data." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,12,0,0"/>
+                    </Expander>
+                    <Expander Header="Code signing &amp; Windows warnings" Foreground="{StaticResource Gold}" Margin="0,0,0,24">
+                      <TextBlock Text="Development builds may be unsigned. SignPath Foundation enrollment and provider approval are required for production signing. A valid publisher signature does not guarantee immediate SmartScreen reputation. Check a release's signature and checksum against its published information." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,12,0,0"/>
+                    </Expander>
+                    <TextBlock Text="Not affiliated with or endorsed by Jagex. Original observatory artwork created for this application." Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </ScrollViewer>
+              </TabItem>
+            </TabControl>
+          </Border>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

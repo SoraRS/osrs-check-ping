@@ -5,6 +5,19 @@ namespace OsrsCheckPing.Core.Tests;
 public sealed class FailureHandlingTests
 {
     [Fact]
+    public async Task MigrationWriteFailurePreservesReadableFavoritesAndCustomPreferences()
+    {
+        await using var h = new Harness();
+        h.Store.SettingsReadError = new SettingsMigrationSaveException(new AppSettings
+        { FavoriteWorldIds = [301], RefreshIntervalSeconds = 7, LatencyCutoffMs = 30 }, new IOException("Read-only folder"));
+        await h.Engine.StartAsync();
+        Assert.Equal([301], h.Engine.GetSnapshot().Settings.FavoriteWorldIds);
+        Assert.Equal(7, h.Engine.GetSnapshot().Settings.RefreshIntervalSeconds);
+        Assert.True(h.World().IsFavorite);
+        Assert.Contains("Upgraded settings could not be saved", h.Engine.GetSnapshot().Notice);
+    }
+
+    [Fact]
     public async Task SettingsReadFailureNoticeSurvivesSuccessfulDiscovery()
     {
         await using var h = new Harness();

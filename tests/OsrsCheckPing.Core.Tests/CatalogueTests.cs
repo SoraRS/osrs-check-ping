@@ -47,10 +47,10 @@ public sealed class CatalogueTests
     [Fact]
     public void DecodesBigEndianFieldsCp1252AndTrailingTransportPadding()
     {
-        var world = new WorldInfo(552, 0x80000001, "oldschool252a.runescape.com", "Café – PvP", 12, -1);
+        var world = new WorldInfo(552, 0x80000001, "oldschool252a.runescape.com", "Café – PvP", 250, -1);
         var bytes = Encode(world).Concat(new byte[100]).ToArray();
         Assert.Equal(world, Assert.Single(WorldCatalogueClient.Decode(bytes)));
-        Assert.Equal("Unknown region (12)", world.Region);
+        Assert.Equal("Unknown region (250)", world.Region);
         Assert.True(world.Members);
     }
 

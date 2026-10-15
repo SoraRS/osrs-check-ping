@@ -1,0 +1,253 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsCheckPing.Desktop">
+  <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
+  <SolidColorBrush x:Key="Ink" Color="#EFE8DA"/>
+  <SolidColorBrush x:Key="Muted" Color="#B2ADA4"/>
+  <SolidColorBrush x:Key="Gold" Color="#D8B575"/>
+  <SolidColorBrush x:Key="Line" Color="#60513B"/>
+  <SolidColorBrush x:Key="Surface" Color="#EE202426"/>
+  <Style TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="FontSize" Value="14"/>
+  </Style>
+  <Style x:Key="Label" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Margin" Value="0,0,0,6"/>
+  </Style>
+  <Style x:Key="Heading" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="26"/>
+    <Setter Property="FontFamily" Value="Georgia"/>
+    <Setter Property="Foreground" Value="{StaticResource Gold}"/>
+    <Setter Property="Margin" Value="0,0,0,16"/>
+  </Style>
+  <Style x:Key="FocusRing" TargetType="Control">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Border BorderThickness="2" CornerRadius="4" BorderBrush="{StaticResource Gold}" Margin="-3"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="Background" Value="#383128"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="18,11"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Plate" Property="BorderBrush" Value="{StaticResource Gold}"/>
+              <Setter TargetName="Plate" Property="Opacity" Value="0.85"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Plate" Property="Opacity" Value="0.45"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="12"/>
+  </Style>
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border x:Name="Box" Width="20" Height="20" Background="#202628" BorderBrush="#9A8B70" BorderThickness="1" CornerRadius="3" Margin="0,0,9,0">
+              <Path x:Name="Tick" Data="M3,9 L7,13 L15,4" Stroke="{StaticResource Gold}" StrokeThickness="2" Visibility="Collapsed"/>
+            </Border>
+            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True">
+              <ContentPresenter.ContentTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                </DataTemplate>
+              </ContentPresenter.ContentTemplate>
+            </ContentPresenter>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Gold}"/>
+              <Setter TargetName="Box" Property="BorderThickness" Value="2"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.6"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="TextBox">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="Background" Value="#202628"/>
+    <Setter Property="CaretBrush" Value="{StaticResource Gold}"/>
+    <Setter Property="SelectionBrush" Value="#7D653C"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+    <Setter Property="Padding" Value="12,10"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+  </Style>
+  <Style TargetType="TabControl">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0,24,0,0"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabControl">
+          <Grid KeyboardNavigation.TabNavigation="Local">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <WrapPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
+            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" Margin="{TemplateBinding Padding}" ContentSource="SelectedContent" KeyboardNavigation.TabIndex="2"/>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="TabItem">
+    <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+    <Setter Property="Padding" Value="22,12"/>
+    <Setter Property="FontSize" Value="15"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabItem">
+          <Border x:Name="Tab" BorderThickness="0,0,0,2" BorderBrush="Transparent" Background="Transparent">
+            <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Gold}"/>
+              <Setter TargetName="Tab" Property="BorderBrush" Value="{StaticResource Gold}"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="Hyperlink">
+    <Setter Property="Foreground" Value="{StaticResource Gold}"/>
+  </Style>
+  <Style TargetType="ToolTip">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="Background" Value="#292C2B"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+    <Setter Property="Padding" Value="12"/>
+    <Setter Property="MaxWidth" Value="420"/>
+    <Setter Property="ContentTemplate">
+      <Setter.Value>
+        <DataTemplate>
+          <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+        </DataTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="DangerText" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsDangerous}" Value="True"><Setter Property="Foreground" Value="#FF9690"/></DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="MemberStar" TargetType="Path">
+    <Setter Property="Data" Value="M10,0 L13,6.5 L20,7.5 L15,12.5 L16,20 L10,16.5 L4,20 L5,12.5 L0,7.5 L7,6.5 Z"/>
+    <Setter Property="Width" Value="15"/>
+    <Setter Property="Height" Value="15"/>
+    <Setter Property="Stretch" Value="Uniform"/>
+    <Setter Property="Stroke" Value="{StaticResource Gold}"/>
+    <Setter Property="Fill" Value="Transparent"/>
+    <Setter Property="StrokeThickness" Value="1.5"/>
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsMembers}" Value="True">
+        <Setter Property="Fill" Value="{StaticResource Gold}"/>
+      </DataTrigger>
+      <DataTrigger Binding="{Binding HasWorld}" Value="False">
+        <Setter Property="Visibility" Value="Hidden"/>
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <DataTemplate x:Key="WorldCard" DataType="{x:Type local:WorldCardModel}">
+    <local:WorldCardSurface x:Name="Card" Height="130" Margin="6" CornerRadius="8" BorderBrush="#665B4A" BorderThickness="1" AutomationProperties.Name="{Binding AccessibleDescription}" ToolTip="{Binding ReadingDetails}" Focusable="False">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+          <GradientStop Color="#F038342C"/>
+          <GradientStop Offset="1" Color="#F01C2426"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Border.Effect>
+        <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.25"/>
+      </Border.Effect>
+      <Grid Margin="16,12">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <DockPanel LastChildFill="True">
+          <Path DockPanel.Dock="Right" Width="13" Height="17" Stretch="Uniform" Stroke="{StaticResource Gold}" StrokeThickness="1.4" Data="M5,1 L13,1 L12,8 L16,12 L2,12 L6,8 Z M9,12 L9,20" Visibility="{Binding IsFavorite, Converter={StaticResource VisibleWhenTrue}}" ToolTip="Always tracked"/>
+          <local:FlagGlyph Country="{Binding CountryCode}" Width="26" Height="17" Margin="0,0,9,0" ToolTip="{Binding Region}"/>
+          <Path Style="{StaticResource MemberStar}" Margin="0,0,8,0" ToolTip="{Binding Membership}"/>
+          <TextBlock x:Name="Number" Text="{Binding WorldLabel}" FontSize="19" FontWeight="SemiBold"/>
+        </DockPanel>
+        <Grid Grid.Row="1" Margin="0,7,0,7">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="25"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <local:ActivityGlyph Kind="{Binding ActivityIcon}" Width="17" Height="17" VerticalAlignment="Center"/>
+          <TextBlock x:Name="Activity" Grid.Column="1" Text="{Binding Activity}" FontSize="12" Foreground="#C7BFB0" TextWrapping="Wrap" VerticalAlignment="Center" MaxHeight="32" TextTrimming="CharacterEllipsis" ToolTip="{Binding Activity}"/>
+        </Grid>
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+          <TextBlock x:Name="Ping" Text="{Binding Latency}" FontSize="21" Foreground="#DDB875" FontWeight="SemiBold"/>
+          <local:SignalGlyph Level="{Binding Signal}" Good="{Binding IsGood}" Width="32" Height="18" Margin="12,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Grid>
+    </local:WorldCardSurface>
+    <DataTemplate.Triggers>
+      <DataTrigger Binding="{Binding IsMembers}" Value="True">
+        <Setter TargetName="Card" Property="BorderBrush" Value="#97774B"/>
+      </DataTrigger>
+      <DataTrigger Binding="{Binding IsGood}" Value="True">
+        <Setter TargetName="Ping" Property="Foreground" Value="#9CCFB3"/>
+      </DataTrigger>
+      <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+        <Setter TargetName="Number" Property="Foreground" Value="#FF9690"/>
+        <Setter TargetName="Activity" Property="Foreground" Value="#FF9690"/>
+        <Setter TargetName="Number" Property="ToolTip" Value="{Binding DangerReason}"/>
+      </DataTrigger>
+      <DataTrigger Binding="{Binding HasWorld}" Value="False">
+        <Setter TargetName="Card" Property="Opacity" Value="0.65"/>
+      </DataTrigger>
+    </DataTemplate.Triggers>
+  </DataTemplate>
+</ResourceDictionary>
