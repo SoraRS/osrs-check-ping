@@ -47,13 +47,24 @@ public sealed class DesktopTests
         window.UpdateLayout();
     }
 
-    private static async Task ClickAsync(FrameworkElement element)
+    private static async Task ClickAsync(ToggleButton element)
     {
+        element.UpdateLayout();
+        Assert.True(element.IsVisible && element.IsEnabled, $"{element.Name} must be available for a native click.");
         var at = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
         Assert.True(SetCursorPos((int)at.X, (int)at.Y));
+        await UntilAsync(() => element.IsMouseOver); // Let WPF process the pointer move before sending button input.
         Input[] input = [new() { Data = new() { Mouse = new() { Flags = 0x0002 } } }, new() { Data = new() { Mouse = new() { Flags = 0x0004 } } }];
-        Assert.Equal(2u, SendInput(2, input, Marshal.SizeOf<Input>()));
-        await Task.Delay(80); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        int clicks = 0;
+        RoutedEventHandler clicked = (_, _) => clicks++;
+        element.Click += clicked;
+        try
+        {
+            Assert.Equal(2u, SendInput(2, input, Marshal.SizeOf<Input>()));
+            await Task.Delay(80); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.True(clicks == 1, $"Native click at {at} must reach {element.Name}; received {clicks} clicks.");
+        }
+        finally { element.Click -= clicked; }
     }
 
     private static Harness Samples()
@@ -232,6 +243,7 @@ public sealed class DesktopTests
             Assert.True(track.IsChecked);
             Preview(main, "tracking-browse-compact.png");
         }
+        catch { Preview(main, "tracking-interaction-failure.png"); throw; }
         finally { SetCursorPos(1, 1); await CloseAsync(main); await h.DisposeAsync(); }
     });
 
