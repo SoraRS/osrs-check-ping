@@ -1,57 +1,79 @@
 # OSRS Check Ping
 
-Find a nearby Old School RuneScape world without watching a list jump around. Check Ping is a small Windows app that shows your current network latency, keeps your favorites close, and quietly reviews the other worlds in the background.
+See your connection latency to Old School RuneScape worlds, keep your favorites close, and find a world with a lower ping. Check Ping is a small Windows app with a fantasy-inspired interface and world cards that stay in world-number order while their readings update.
 
-## Get started
+## Download and open
 
-1. You need **Windows x64** and Microsoft's **[.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)**. Choose **Desktop Runtime**, rather than the ASP.NET or standard runtime.
-2. Download `OsrsCheckPing.exe` from [Releases](https://github.com/SoraRS/osrs-check-ping/releases). If a release is not yet available, testing builds are in the **OsrsCheckPing-win-x64** artifact on the [Actions page](https://github.com/SoraRS/osrs-check-ping/actions); extract the ZIP first. Testing builds may be unsigned.
-3. Open the executable. No installation or administrator access is needed. The app starts maximized and checks every world once. Open the gear to see progress.
+1. Use **Windows x64** and install Microsoft's **[.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)**. Select **Desktop Runtime**; the standard or ASP.NET runtime alone is not enough.
+2. Download `OsrsCheckPing.exe` from [Releases](https://github.com/SoraRS/osrs-check-ping/releases) when a release is available. For testing builds, follow the steps below.
+3. Extract the download to a folder you want to keep, then open `OsrsCheckPing.exe`. No installer or administrator access is normally required.
+4. The app starts maximized and checks every world once. Open the **gear** to see progress or any connection notice.
 
-## Read your worlds
+**To download a testing build:** sign into GitHub, open [Build and test](https://github.com/SoraRS/osrs-check-ping/actions/workflows/build.yml), and choose the latest successful run for **main**. Scroll to **Artifacts** and download **OsrsCheckPing-win-x64**, then extract its ZIP. The interface previews artifact contains pictures, rather than the application. [GitHub's download guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) explains the sign-in and download steps.
 
-The dashboard shows the **20 fastest eligible worlds**, plus **up to five pinned favorites** in their own section. The default cutoff is **30 ms**. Fewer worlds appear when fewer meet your cutoff. Both sections stay in world-number order, so a changing ping won't move a card.
+The card interface described here is **version 1.1.0 or newer**; check **Settings → About**. An older workflow run contains an older executable, even if a newer build is currently running. Testing builds may be unsigned.
 
-Each card shows a country flag, activity, latency, and signal bars. A **filled gold star** means members; an **outlined star** means free-to-play. A **pin** means always tracked. Red world/activity text warns about main-character PvP, High Risk, or Bounty Hunter rules; hover for the reason and read the game's own warning before entering.
+## Updating an older copy
 
-Live worlds update every **five seconds** by default. Hidden worlds receive no live checks; every **five minutes**, the app checks them once and updates the selection. Favorites continue being checked even when slow or unreachable. A timeout can mean ICMP is blocked, rather than that the game world is offline.
+Fully exit the old app first. If it is in the system tray, right-click its icon and choose **Exit**. Replace the old executable with the new download, then open that file and update any shortcut pointing elsewhere. Existing favorites and preferences stay on your device.
 
-These readings measure **network round-trip time**, not server tick processing. Low ping does not guarantee a lag-free game.
+Downloading a new build does not replace other copies automatically. If you still see the old table with **Connection**, **Access**, and **Region** columns, check the file your shortcut opens and the version in About.
 
-## Make it yours
+## Read your world cards
 
-Open the **gear** or press **Ctrl+,**. Settings stays inside the same window. Use **Worlds** or **Esc** to return.
+The dashboard shows up to **20 eligible worlds**, plus **five pinned favorites** in their own section. Automatic selection favors the lowest pings at or below **30 ms** by default. Both sections display worlds by number, so a ping change does not shuffle the cards.
 
-- **World tracking:** search by world number, country, or activity. Enable **Browse hidden worlds** to see the rest; browsing sends no probes. **Track** makes a choice for this session. Manually enabled worlds take priority within the 20 ordinary slots. **Reset session choices** returns to automatic selection.
-- **Pin:** save up to five always-tracked worlds. Pinned tracking stays checked and locked. Unpinning restores the underlying tracking choice. A sixth pin is rejected until you remove another.
-- **Check connection:** download the catalogue again and check every world. Session choices and pins survive the scan. Inactive readings are labeled **Scan result**.
-- **Application:** adjust acceptable latency and update frequency, or enable always-on-top and tray options. Select **Apply settings** to save. If close-to-tray is enabled, choose **Exit** from the tray menu to quit fully.
-- **About:** version, project, support, privacy, and license links.
+| On the card | What it means |
+| --- | --- |
+| Country flag | The world's region; a globe is used when the region is unknown. |
+| Filled gold star | Members world. |
+| Outlined gold star | Free-to-play world. |
+| Pin | One of your always-tracked favorites. |
+| Activity symbol and name | The world's activity; unfamiliar activities use a generic symbol. Hover to read a long activity name. |
+| Number in ms and five signal bars | Your latest network round-trip time. Lower is better. |
+| Red world/activity text | A main-character PvP, High Risk, or Bounty Hunter warning. Hover for the reason and read the game's warning before entering. |
+| Timeout, unreachable, or unavailable | A usable reading could not be obtained, or a saved favorite is missing from the catalogue. |
 
-Slow or failed ordinary worlds are removed after one minute's worth of consecutive bad live readings—12 at the default interval. A good reading resets that count. Removed worlds can return at the next background review or **Check connection**, or when manually enabled. Session tracking choices reset after exiting; pins and preferences are remembered.
+Live worlds update every **five seconds** by default. Other worlds stay hidden and receive no regular live checks. Every **five minutes**, a background review checks the hidden worlds and updates the selection. No countdown or manual refresh is needed to keep that review running.
 
-Existing installations using the old 60 ms default move to 30 ms once. Other custom cutoffs are kept, and you can choose 60 ms again afterward.
+Ping measures your network connection, **not server ticks**. A low reading does not guarantee a lag-free game, and an ICMP timeout does not necessarily mean a world is offline.
 
-## Having trouble?
+## Settings
 
-**Nothing appears:** open settings and check scan progress or any error notice. Raise the cutoff, choose **Apply settings**, then **Check connection**. Thirty milliseconds is intentionally selective and may be too low for your location.
+Open the **gear** or press **Ctrl+,**. Settings replaces the dashboard inside the same window. Select **Worlds** or press **Esc** to return.
 
-**Every world times out:** check your connection, VPN, firewall, and network rules. Some networks block ICMP. The app may time out even while the game works. Try another network; administrator access is not normally required.
+- **World tracking:** search by world number, country, or activity. Turn on **Browse hidden worlds** to manage the rest of the catalogue; browsing alone sends no probes. **Track** changes a world for this session. Manually enabled worlds take priority within the 20 ordinary slots. **Reset session choices** returns to automatic selection.
+- **Pin:** save up to five favorites. They use separate slots and keep being checked through high latency and failures. Their Track checkbox stays checked and locked while pinned. Unpin one before adding a sixth. Unpinning restores the underlying tracking choice.
+- **Check connection:** check every world again. Use this after changing the cutoff if you want to find newly eligible worlds immediately. Your pins and session choices survive the scan. Hidden-world readings are labeled **Scan result**.
+- **Application:** change the latency cutoff, refresh interval, always-on-top, or tray options, then select **Apply settings**. Tray options and always-on-top start disabled. When close-to-tray is enabled, use the tray menu's **Exit** command to quit fully.
+- **About:** find the version, project and support links, privacy information, and license.
 
-**The catalogue won't download:** the app uses its last saved catalogue when available. Settings shows when it was saved and why a fallback was needed. Without a saved copy, connect to the internet and select **Check connection**.
+Ordinary worlds leave the live selection after one minute's worth of consecutive slow or failed readings—12 at the default interval. A good reading resets that count. They can return at the next background review, through **Check connection**, or when manually enabled. Pins are exempt from removal. Session tracking choices reset on exit; pins and application preferences are saved.
 
-**Windows asks for a runtime:** install the **x64 .NET 10 Desktop Runtime** from the link above, then reopen the app.
+## Common problems
 
-**Windows says “Don't run” or “unknown publisher”:** check the download source and the file's **Properties → Digital Signatures**. Development builds are unsigned. Production signing requires external provider approval, and even a newly signed download can initially show SmartScreen warnings. See [signing status and verification](docs/SIGNING.md). Do not disable Windows protection globally.
+**I still see the old interface.** Fully exit any older copy, download the application artifact from the correct successful build, and launch the extracted file directly. Check **About** for version 1.1.0 or newer and update your shortcut.
 
-**The app disappeared:** look in the system tray if you enabled a tray option. Double-click its icon to restore it, or right-click for Settings and Exit.
+**No ordinary worlds appear.** Open settings to check progress or an error notice. The default 30 ms cutoff may be too low for your location. Raise it in **Application**, select **Apply settings**, then use **Check connection**. You can also pin a world regardless of its ping.
 
-**Preferences won't save:** settings shows a notice; your current choices still work for the session. Check access to `%LOCALAPPDATA%\OsrsCheckPing`. To reset saved data, fully exit and rename that folder; the app recreates it next launch.
+**Everything times out.** Check your connection, VPN, firewall, and network rules. Some networks block ICMP even when the game works. Try another network before assuming every world is offline; administrator access is not normally required.
 
-## Privacy and support
+**The world list will not download.** The app uses its last saved catalogue when possible. Settings shows its saved time and the connection notice. Connect to the internet and select **Check connection** to retry.
 
-The app contacts Jagex's public catalogue endpoint and probes the supplied world hosts. Preferences and the last catalogue are saved locally. There is no account login, analytics, or saved latency history. See [Privacy](docs/PRIVACY.md).
+**Windows asks for a runtime.** Install the **x64 .NET 10 Desktop Runtime** linked above, then reopen the app.
 
-[Report a problem](https://github.com/SoraRS/osrs-check-ping/issues) with your Windows version, display scaling, and what happened. Development, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
+**Windows says “Don't run” or “unknown publisher.”** Current testing builds are unsigned. Confirm that the file came from this project's release or Actions page. Signed releases can be checked under **Properties → Digital Signatures**, using the signature and checksum information accompanying that release. See [Windows warnings and signing status](docs/SIGNING.md) for details. Do not disable Windows protection globally.
+
+**The app disappeared.** If a tray option is enabled, look in the system tray. Double-click the icon to restore the app, or right-click for **Settings** and **Exit**.
+
+**My cutoff changed from 60 to 30 ms.** Existing installations using the old 60 ms default move to 30 ms once. Other custom cutoffs are kept. You can choose 60 ms again and save it afterward.
+
+**Preferences do not survive a restart.** Check the settings page for a save error. Current choices can still work for that session. The app needs access to `%LOCALAPPDATA%\OsrsCheckPing`. To reset saved data, fully exit and rename that folder; the app creates it again next launch.
+
+## Privacy and help
+
+Preferences, pins, restored window placement, and the last world catalogue are saved locally. The app downloads Jagex's public catalogue and probes its supplied world hosts. There is no game account login, analytics, or saved latency history. Read [Privacy](docs/PRIVACY.md) for details.
+
+[Report a problem](https://github.com/SoraRS/osrs-check-ping/issues) with your app version, Windows version, display scaling, and what happened. Build instructions, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
 
 [Apache License 2.0](LICENSE). Independent software, not affiliated with or endorsed by Jagex.
