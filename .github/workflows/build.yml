@@ -40,6 +40,13 @@ jobs:
         run: dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release --no-build
       - name: Test Windows interface
         run: dotnet test tests/OsrsCheckPing.Desktop.Tests --configuration Release --no-build
+      - name: Save Windows interface previews
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: Windows-interface-previews
+          path: tests/OsrsCheckPing.Desktop.Tests/bin/Release/net10.0-windows/ui-preview/*.png
+          if-no-files-found: ignore
       - name: Publish Windows executable
         run: dotnet publish src/OsrsCheckPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
       - name: Verify single executable output

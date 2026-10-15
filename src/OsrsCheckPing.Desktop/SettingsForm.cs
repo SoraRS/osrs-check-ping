@@ -9,6 +9,11 @@ internal sealed class SettingsForm : Form
     private readonly TextBox _search = new() { Width = 320, PlaceholderText = "Search world, region, or activity", AccessibleName = "Search worlds" };
     private readonly Button _recheck = new() { Text = "Recheck all worlds" };
     private readonly Button _reset = new() { Text = "Reset session toggles" };
+    private readonly CheckBox _browseHidden = new()
+    {
+        Text = "Browse hidden worlds", AutoSize = true, AccessibleName = "Browse hidden worlds",
+        Margin = new Padding(10, 10, 0, 0)
+    };
     private readonly Label _trackingInfo = Theme.Label("");
     private readonly Label _message = Theme.Label("");
     private readonly NumericUpDown _cutoff = new() { Minimum = 1, Maximum = 2000, Width = 110, AccessibleName = "Latency cutoff in milliseconds" };
@@ -19,6 +24,7 @@ internal sealed class SettingsForm : Form
     private readonly Button _apply = new() { Text = "Apply settings" };
     private readonly System.Windows.Forms.Timer _refreshTimer = new() { Interval = 200 };
     private volatile bool _refreshPending = true;
+    private string? _shownNotice;
 
     public SettingsForm(MonitoringEngine engine)
     {
@@ -26,8 +32,8 @@ internal sealed class SettingsForm : Form
         Text = "Settings · OSRS Check Ping";
         Icon = SystemIcons.Application;
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1110, 650);
-        MinimumSize = new Size(890, 480);
+        ClientSize = new Size(1110, 700);
+        MinimumSize = new Size(900, 540);
         StartPosition = FormStartPosition.CenterParent;
         ShowInTaskbar = false;
 
@@ -48,32 +54,46 @@ internal sealed class SettingsForm : Form
         toolbar.Controls.Add(_search);
         toolbar.Controls.Add(_recheck);
         toolbar.Controls.Add(_reset);
+        toolbar.Controls.Add(_browseHidden);
         trackingLayout.Controls.Add(toolbar, 0, 0);
         _trackingInfo.MaximumSize = new Size(1000, 0);
+        _trackingInfo.Font = new Font("Segoe UI Semibold", 11);
+        _trackingInfo.ForeColor = Theme.Gold;
         trackingLayout.Controls.Add(_trackingInfo, 0, 1);
         trackingLayout.Controls.Add(_worlds, 0, 2);
-        var explanation = Theme.Label("Track toggles last for this session. Always saves up to five worlds and prevents automatic removal.\nInactive scan results stay unchanged until you recheck. Reset restores the last scan's automatic selection.");
+        var explanation = Theme.Label("Favorites reserve slots within the 20-world limit. Session toggles reset when you exit.\nHidden worlds rest between five-minute reviews. Browsing them does not start live checks.");
         explanation.MaximumSize = new Size(1000, 0);
         trackingLayout.Controls.Add(explanation, 0, 3);
         tracking.Controls.Add(trackingLayout);
 
-        var preferences = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(3) };
-        preferences.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var preferences = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 1 };
         preferences.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        AddFullWidth(preferences, Theme.Label("Connection monitoring", true));
-        AddPreference(preferences, "Acceptable latency cutoff (ms)", _cutoff);
-        AddPreference(preferences, "Refresh interval (seconds)", _interval);
-        var rule = Theme.Label("Unpinned worlds stop after 60 seconds' worth of consecutive slow or failed checks.\nChanging monitoring settings resets the streaks. Recheck to discover newly eligible worlds.");
+        var monitoring = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2 };
+        monitoring.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        monitoring.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        AddFullWidth(monitoring, Theme.Label("Connection monitoring", true));
+        AddPreference(monitoring, "Acceptable latency (ms)", _cutoff);
+        AddPreference(monitoring, "Live update interval (seconds)", _interval);
+        var rule = Theme.Label("Up to 20 worlds are live at once. Hidden worlds are reviewed every five minutes.\nSlow or failed checks for a minute remove an unpinned world until a later review.");
         rule.MaximumSize = new Size(850, 0);
-        AddFullWidth(preferences, rule);
-        AddFullWidth(preferences, Theme.Label("Window behavior", true));
-        AddFullWidth(preferences, _onTop);
-        AddFullWidth(preferences, _minimizeTray);
-        AddFullWidth(preferences, _closeTray);
-        var trayHelp = Theme.Label("Tray tracking continues while the window is hidden. Use the tray menu's Exit command to quit.\nWindow size and position are saved when you exit.");
+        AddFullWidth(monitoring, rule);
+        var monitoringCard = new RunePanel { Dock = DockStyle.Top, AutoSize = true, Margin = new Padding(0, 0, 0, 16) };
+        monitoringCard.Controls.Add(monitoring);
+        preferences.Controls.Add(monitoringCard, 0, 0);
+
+        var window = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 1 };
+        window.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        AddFullWidth(window, Theme.Label("Window & tray", true));
+        AddFullWidth(window, _onTop);
+        AddFullWidth(window, _minimizeTray);
+        AddFullWidth(window, _closeTray);
+        var trayHelp = Theme.Label("Tracking continues while hidden. Use Exit in the tray menu to quit.\nWindow size and position are remembered automatically.");
         trayHelp.MaximumSize = new Size(850, 0);
-        AddFullWidth(preferences, trayHelp);
-        AddFullWidth(preferences, _apply);
+        AddFullWidth(window, trayHelp);
+        var windowCard = new RunePanel { Dock = DockStyle.Top, AutoSize = true, Margin = new Padding(0, 0, 0, 16) };
+        windowCard.Controls.Add(window);
+        preferences.Controls.Add(windowCard, 0, 1);
+        preferences.Controls.Add(_apply, 0, 2);
         application.Controls.Add(preferences);
 
         var outer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Padding = new Padding(8) };
@@ -95,9 +115,11 @@ internal sealed class SettingsForm : Form
         _closeTray.Checked = settings.CloseToTray;
 
         _search.TextChanged += (_, _) => RefreshWorlds();
+        _browseHidden.CheckedChanged += (_, _) => RefreshWorlds();
         _worlds.TrackingChanged += (id, enabled) =>
         {
-            _engine.SetTracking(id, enabled);
+            if (!_engine.SetTracking(id, enabled))
+                _message.Text = "All 20 slots are reserved. Disable another manually selected world first.";
             _refreshPending = true;
         };
         _worlds.FavoriteChanged += async (id, enabled) =>
@@ -138,7 +160,7 @@ internal sealed class SettingsForm : Form
                 if (!IsDisposed)
                 {
                     var snapshot = _engine.GetSnapshot();
-                    _message.Text = snapshot.Notice ?? $"Settings applied. Removal requires {snapshot.Settings.RequiredBadReadings} consecutive bad checks. Recheck to add newly eligible worlds.";
+                    _message.Text = snapshot.Notice ?? "Settings saved. Hidden worlds are reviewed every five minutes.";
                 }
             }
             catch (OperationCanceledException) when (IsDisposed || Disposing) { }
@@ -174,7 +196,7 @@ internal sealed class SettingsForm : Form
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         control.Margin = new Padding(3, 9, 3, 9);
         panel.Controls.Add(control, 0, row);
-        panel.SetColumnSpan(control, 2);
+        panel.SetColumnSpan(control, panel.ColumnCount);
     }
 
     private static void AddPreference(TableLayoutPanel panel, string title, Control control)
@@ -193,16 +215,20 @@ internal sealed class SettingsForm : Form
         if (IsDisposed) return;
         var snapshot = _engine.GetSnapshot();
         string query = _search.Text.Trim();
-        var matching = snapshot.Worlds.Where(w => query.Length == 0 || w.Id.ToString().Contains(query, StringComparison.OrdinalIgnoreCase)
+        var visible = _browseHidden.Checked ? snapshot.Worlds : snapshot.VisibleWorlds;
+        _search.PlaceholderText = _browseHidden.Checked ? "Search all worlds" : "Search your tracked worlds";
+        var matching = visible.Where(w => query.Length == 0 || w.Id.ToString().Contains(query, StringComparison.OrdinalIgnoreCase)
             || (w.World?.Region.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
             || (w.World?.Activity.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)).OrderBy(w => w.Id).ToArray();
         _worlds.ShowWorlds(matching, snapshot.Settings);
         _recheck.Enabled = !snapshot.IsScanning;
         _reset.Enabled = !snapshot.IsScanning;
         _trackingInfo.Text = snapshot.IsScanning
-            ? $"Scanning · {snapshot.ScanCompleted} / {snapshot.ScanTotal} worlds checked. Session toggles survive the recheck."
-            : $"{matching.Length} worlds shown · {snapshot.Worlds.Count(w => w.IsTracked)} tracked · {snapshot.Settings.FavoriteWorldIds.Count} / 5 always tracked";
+            ? $"{(snapshot.IsRecheckingHidden ? "Reviewing hidden worlds" : "Scouting worlds")} · {snapshot.ScanCompleted} / {snapshot.ScanTotal}"
+            : $"{snapshot.LiveCount} / 20 live slots   ·   {snapshot.HiddenCount} hidden   ·   {snapshot.Settings.FavoriteWorldIds.Count} / 5 favorites";
         if (snapshot.Notice is not null)
-            _message.Text = snapshot.Notice;
+            _message.Text = _shownNotice = snapshot.Notice;
+        else if (_message.Text == _shownNotice)
+            _message.Text = "";
     }
 }

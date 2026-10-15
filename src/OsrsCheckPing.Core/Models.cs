@@ -54,10 +54,14 @@ public sealed record WorldSnapshot(
 
 public sealed record MonitorSnapshot(
     AppSettings Settings, IReadOnlyList<WorldSnapshot> Worlds, bool SettingsLoaded,
-    bool IsScanning, int ScanCompleted, int ScanTotal, string? Notice, DateTimeOffset? CatalogueFetchedAt)
+    bool IsScanning, int ScanCompleted, int ScanTotal, string? Notice, DateTimeOffset? CatalogueFetchedAt,
+    DateTimeOffset? NextHiddenRecheckAt, bool IsRecheckingHidden, DateTimeOffset CapturedAt)
 {
     public IReadOnlyList<WorldSnapshot> Favorites => Sort(Worlds.Where(w => w.IsFavorite));
     public IReadOnlyList<WorldSnapshot> Tracked => Sort(Worlds.Where(w => w.IsTracked && !w.IsFavorite));
+    public IReadOnlyList<WorldSnapshot> VisibleWorlds => Sort(Worlds.Where(w => w.IsTracked || w.IsFavorite));
+    public int LiveCount => Worlds.Count(w => w.IsTracked);
+    public int HiddenCount => Worlds.Count(w => w.World is not null && !w.IsTracked);
 
     private static WorldSnapshot[] Sort(IEnumerable<WorldSnapshot> worlds) => worlds
         .OrderBy(w => w.LatestResult?.Status == ProbeStatus.Success

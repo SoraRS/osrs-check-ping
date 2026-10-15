@@ -72,9 +72,10 @@ internal sealed class ManualClock : IClock
         await _delays.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
     public void Advance(DelayRequest request)
     {
-        Interlocked.Add(ref _ticks, request.Delay.Ticks);
+        AdvanceBy(request.Delay);
         request.Completion.TrySetResult();
     }
+    public void AdvanceBy(TimeSpan elapsed) => Interlocked.Add(ref _ticks, elapsed.Ticks);
 }
 
 internal sealed class Harness : IAsyncDisposable

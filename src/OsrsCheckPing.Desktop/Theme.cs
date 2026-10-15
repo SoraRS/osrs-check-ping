@@ -2,28 +2,33 @@ namespace OsrsCheckPing.Desktop;
 
 internal static class Theme
 {
-    public static readonly Color Background = Color.FromArgb(31, 29, 25);
-    public static readonly Color Panel = Color.FromArgb(49, 44, 36);
-    public static readonly Color Alternate = Color.FromArgb(43, 39, 33);
-    public static readonly Color Gold = Color.FromArgb(213, 181, 105);
-    public static readonly Color Text = Color.FromArgb(232, 223, 201);
-    public static readonly Color Muted = Color.FromArgb(181, 170, 148);
-    public static readonly Color Good = Color.FromArgb(152, 200, 133);
-    public static readonly Color Slow = Color.FromArgb(237, 193, 112);
-    public static readonly Color Failed = Color.FromArgb(231, 146, 128);
+    public static readonly Color Background = Color.FromArgb(25, 25, 22);
+    public static readonly Color Panel = Color.FromArgb(35, 35, 30);
+    public static readonly Color Alternate = Color.FromArgb(39, 39, 33);
+    public static readonly Color Raised = Color.FromArgb(48, 48, 39);
+    public static readonly Color Border = Color.FromArgb(70, 66, 52);
+    public static readonly Color Gold = Color.FromArgb(211, 185, 124);
+    public static readonly Color Text = Color.FromArgb(239, 234, 218);
+    public static readonly Color Muted = Color.FromArgb(166, 168, 148);
+    public static readonly Color Good = Color.FromArgb(143, 205, 170);
+    public static readonly Color Slow = Color.FromArgb(235, 191, 117);
+    public static readonly Color Failed = Color.FromArgb(228, 150, 132);
 
     public static void Apply(Control control)
     {
-        control.BackColor = control is Form ? Background : Panel;
+        control.BackColor = control is Form ? Background
+            : control is System.Windows.Forms.Label or SignalEmblem or TableLayoutPanel or FlowLayoutPanel ? Color.Transparent : Panel;
         if (control is not System.Windows.Forms.Label)
             control.ForeColor = Text;
         if (control is Button button)
         {
             button.FlatStyle = FlatStyle.Flat;
-            button.FlatAppearance.BorderColor = Gold;
+            button.FlatAppearance.BorderColor = Border;
+            button.FlatAppearance.MouseOverBackColor = Raised;
+            button.FlatAppearance.MouseDownBackColor = Background;
             button.ForeColor = Gold;
             button.AutoSize = true;
-            button.Padding = new Padding(9, 4, 9, 4);
+            button.Padding = new Padding(13, 6, 13, 6);
             button.Cursor = Cursors.Hand;
         }
         if (control is TextBox textBox)
@@ -44,11 +49,17 @@ internal static class Theme
     public static void StyleTabs(TabControl tabs)
     {
         tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
-        tabs.ItemSize = new Size(145, 34);
+        tabs.SizeMode = TabSizeMode.Fixed;
+        tabs.ItemSize = new Size(170, 42);
         tabs.DrawItem += (_, args) =>
         {
             using var brush = new SolidBrush(args.Index == tabs.SelectedIndex ? Panel : Background);
             args.Graphics.FillRectangle(brush, args.Bounds);
+            if (args.Index == tabs.SelectedIndex)
+            {
+                using var accent = new SolidBrush(Gold);
+                args.Graphics.FillRectangle(accent, args.Bounds.Left + 12, args.Bounds.Bottom - 3, args.Bounds.Width - 24, 2);
+            }
             TextRenderer.DrawText(args.Graphics, tabs.TabPages[args.Index].Text, tabs.Font, args.Bounds,
                 args.Index == tabs.SelectedIndex ? Gold : Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         };

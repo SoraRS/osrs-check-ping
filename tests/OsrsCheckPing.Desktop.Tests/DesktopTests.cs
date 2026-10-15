@@ -7,6 +7,68 @@ namespace OsrsCheckPing.Desktop.Tests;
 public sealed class DesktopTests
 {
     [Fact]
+    public Task DashboardAndSettingsHideOverflowUntilExplicitlyBrowsed() => OnUiThreadAsync(async () =>
+    {
+        var h = new Harness();
+        h.Catalogue.Worlds = Enumerable.Range(301, 40)
+            .Select(id => new WorldInfo(id, 1, $"world-{id}.runescape.com", "Trading", 0, 100)).ToArray();
+        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success,
+            int.Parse(host.Split('.')[0].AsSpan("world-".Length)) - 300));
+        using var main = new MainForm(h.Engine);
+        main.Show();
+        try
+        {
+            await UntilAsync(() => Controls<WorldGrid>(main).Sum(grid => grid.Rows.Count) == 20);
+            Assert.Equal(20, h.Engine.GetSnapshot().HiddenCount);
+            Assert.Equal(3, Controls<MetricCard>(main).Count());
+            Assert.Single(Controls<SignalEmblem>(main));
+            Assert.All(Controls<WorldGrid>(main).SelectMany(grid => grid.Rows.Cast<DataGridViewRow>()),
+                row => Assert.InRange(((WorldSnapshot)row.Tag!).Id, 301, 320));
+            SavePreview(main, "dashboard.png");
+
+            Controls<Button>(main).Single(button => button.Text == "Settings").PerformClick();
+            var settings = Assert.Single(main.OwnedForms.OfType<SettingsForm>());
+            var worlds = Assert.Single(Controls<WorldGrid>(settings));
+            Assert.Equal(20, worlds.Rows.Count);
+            SavePreview(settings, "world-settings.png");
+            var tabs = Assert.Single(Controls<TabControl>(settings));
+            tabs.SelectedIndex = 1;
+            SavePreview(settings, "application-settings.png");
+            tabs.SelectedIndex = 0;
+            var browse = Controls<CheckBox>(settings).Single(control => control.AccessibleName == "Browse hidden worlds");
+            Assert.False(browse.Checked);
+            int probes = h.Probe.Hosts.Count;
+            browse.Checked = true;
+            Assert.Equal(40, worlds.Rows.Count);
+            Assert.Equal(probes, h.Probe.Hosts.Count);
+            browse.Checked = false;
+            Assert.Equal(20, worlds.Rows.Count);
+            settings.Close();
+            for (int id = 301; id <= 305; id++) await h.Engine.SetFavoriteAsync(id, true);
+            main.Height = 650;
+            await UntilAsync(() => Controls<WorldGrid>(main).Any(grid => grid.Rows.Count == 5));
+            var automatic = Controls<WorldGrid>(main).Single(grid => grid.Rows.Count == 15);
+            Assert.True(automatic.Height >= automatic.ColumnHeadersHeight + automatic.RowTemplate.Height,
+                "The automatic world list must retain room for a row when all five favorites are saved.");
+            SavePreview(main, "favorites-compact.png");
+        }
+        finally
+        {
+            await CloseAsync(main);
+            await h.DisposeAsync();
+        }
+    });
+
+    private static void SavePreview(Form form, string name)
+    {
+        string directory = Path.Combine(AppContext.BaseDirectory, "ui-preview");
+        Directory.CreateDirectory(directory);
+        using var bitmap = new Bitmap(form.Width, form.Height);
+        form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+        bitmap.Save(Path.Combine(directory, name), System.Drawing.Imaging.ImageFormat.Png);
+    }
+
+    [Fact]
     public async Task NativeIcmpReachesWindowsLoopbackWithoutElevation()
     {
         var result = await new IcmpLatencyProbe().ProbeAsync("127.0.0.1", CancellationToken.None);

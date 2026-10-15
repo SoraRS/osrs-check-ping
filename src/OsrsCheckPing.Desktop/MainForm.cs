@@ -14,7 +14,12 @@ internal sealed class MainForm : Form
     private readonly Label _trackedTitle = Theme.Label("Nearby worlds", true);
     private readonly ProgressBar _progress = new() { Dock = DockStyle.Fill, Height = 7, Visible = false };
     private readonly Button _settingsButton = new() { Text = "Settings", AccessibleName = "Open settings" };
-    private readonly Button _retryButton = new() { Text = "Retry world scan", Visible = false };
+    private readonly Button _recheckButton = new() { Text = "Recheck worlds", AccessibleName = "Recheck all worlds" };
+    private readonly SignalEmblem _emblem = new() { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 16, 0) };
+    private readonly MetricCard _bestPing = new("Best connection") { Dock = DockStyle.Fill };
+    private readonly MetricCard _liveWorlds = new("Live worlds") { Dock = DockStyle.Fill };
+    private readonly MetricCard _nextReview = new("Next world review") { Dock = DockStyle.Fill };
+    private readonly RunePanel _favoritesSection;
     private readonly TableLayoutPanel _layout;
     private readonly System.Windows.Forms.Timer _refreshTimer = new() { Interval = 200 };
     private readonly NotifyIcon _tray;
@@ -25,6 +30,8 @@ internal sealed class MainForm : Form
     private bool _allowClose;
     private bool _forceExit;
     private FormWindowState _lastVisibleState = FormWindowState.Normal;
+    private MonitorSnapshot? _lastSnapshot;
+    private DateTimeOffset _snapshotReceivedAt;
 
     public MainForm(MonitoringEngine engine)
     {
@@ -32,47 +39,77 @@ internal sealed class MainForm : Form
         Text = "OSRS Check Ping";
         Icon = SystemIcons.Application;
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1030, 660);
-        MinimumSize = new Size(790, 480);
+        MinimumSize = new Size(860, 580);
+        var desktop = Screen.PrimaryScreen!.WorkingArea;
+        Size = new Size(Math.Min(1140, desktop.Width - 60), Math.Min(900, desktop.Height - 60));
         StartPosition = FormStartPosition.CenterScreen;
         KeyPreview = true;
 
-        var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(0, 0, 0, 5) };
+        var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, Padding = new Padding(0, 0, 0, 12) };
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         var title = Theme.Label("OSRS CHECK PING", true);
-        title.Font = new Font("Segoe UI", 19, FontStyle.Bold);
-        header.Controls.Add(title, 0, 0);
-        _settingsButton.Anchor = AnchorStyles.Right;
-        header.Controls.Add(_settingsButton, 1, 0);
+        title.Font = new Font("Segoe UI Semibold", 21);
+        title.Margin = new Padding(0, 2, 0, 1);
+        var branding = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true };
+        var eyebrow = Theme.Label("THE WORLD SCOUT");
+        eyebrow.Font = new Font("Segoe UI", 8, FontStyle.Bold);
+        eyebrow.ForeColor = Theme.Gold;
+        eyebrow.Margin = Padding.Empty;
+        branding.Controls.Add(eyebrow);
+        branding.Controls.Add(title);
+        var tagline = Theme.Label("Less lag. A better place to play.");
+        tagline.Margin = Padding.Empty;
+        branding.Controls.Add(tagline);
+        var actions = new FlowLayoutPanel { AutoSize = true, Anchor = AnchorStyles.Right, WrapContents = false };
+        actions.Controls.Add(_recheckButton);
+        actions.Controls.Add(_settingsButton);
+        header.Controls.Add(_emblem, 0, 0);
+        header.Controls.Add(branding, 1, 0);
+        header.Controls.Add(actions, 2, 0);
+
+        var metrics = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, Padding = new Padding(0, 0, 0, 14) };
+        for (int i = 0; i < 3; i++) metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3));
+        _bestPing.Margin = new Padding(0, 0, 8, 0);
+        _liveWorlds.Margin = new Padding(4, 0, 4, 0);
+        _nextReview.Margin = new Padding(8, 0, 0, 0);
+        metrics.Controls.Add(_bestPing, 0, 0);
+        metrics.Controls.Add(_liveWorlds, 1, 0);
+        metrics.Controls.Add(_nextReview, 2, 0);
 
         _layout = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 10, Padding = new Padding(18)
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 7, Padding = new Padding(24, 18, 24, 12)
         };
         _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 108));
+        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 124));
         _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
         _layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         _notice.MaximumSize = new Size(950, 0);
-        _empty.MaximumSize = new Size(950, 0);
+        _notice.Padding = new Padding(10);
+        _favoritesSection = CreateWorldSection(_favoriteTitle, _favorites);
+        _favorites.ColumnHeadersVisible = false;
+        _favoritesSection.Margin = new Padding(0, 0, 0, 12);
+        _favoritesSection.Visible = false;
+        var trackedSection = CreateWorldSection(_trackedTitle, _tracked, _empty);
+        _empty.AutoSize = false;
+        _empty.Dock = DockStyle.Fill;
+        _empty.TextAlign = ContentAlignment.MiddleCenter;
+        _empty.Padding = new Padding(20);
+        _summary.Anchor = AnchorStyles.Left;
+        _summary.Font = new Font("Segoe UI", 9);
         _layout.Controls.Add(header, 0, 0);
-        _layout.Controls.Add(_summary, 0, 1);
+        _layout.Controls.Add(metrics, 0, 1);
         _layout.Controls.Add(_notice, 0, 2);
         _layout.Controls.Add(_progress, 0, 3);
-        _layout.Controls.Add(_favoriteTitle, 0, 4);
-        _layout.Controls.Add(_favorites, 0, 5);
-        _layout.Controls.Add(_trackedTitle, 0, 6);
-        _layout.Controls.Add(_tracked, 0, 7);
-        _layout.Controls.Add(_empty, 0, 8);
-        _layout.Controls.Add(_retryButton, 0, 9);
+        _layout.Controls.Add(_favoritesSection, 0, 4);
+        _layout.Controls.Add(trackedSection, 0, 5);
+        _layout.Controls.Add(_summary, 0, 6);
         Controls.Add(_layout);
         Theme.Apply(this);
         title.ForeColor = Theme.Gold;
@@ -91,13 +128,18 @@ internal sealed class MainForm : Form
         _engine.Changed += EngineChanged;
         _refreshTimer.Tick += (_, _) =>
         {
-            if (!_refreshPending || _closing) return;
-            _refreshPending = false;
-            RefreshSnapshot();
+            if (_closing) return;
+            if (_refreshPending)
+            {
+                _refreshPending = false;
+                RefreshSnapshot();
+            }
+            else
+                RefreshCountdown();
         };
         _refreshTimer.Start();
         _settingsButton.Click += (_, _) => OpenSettings();
-        _retryButton.Click += async (_, _) => await RecheckAsync();
+        _recheckButton.Click += async (_, _) => await RecheckAsync();
         KeyDown += (_, args) =>
         {
             if (args.Control && args.KeyCode == Keys.Oemcomma)
@@ -126,9 +168,28 @@ internal sealed class MainForm : Form
 
     private void EngineChanged(object? sender, EventArgs args) => _refreshPending = true;
 
+    private static RunePanel CreateWorldSection(Label title, WorldGrid grid, Label? empty = null)
+    {
+        var section = new RunePanel { Dock = DockStyle.Fill, Margin = Padding.Empty };
+        var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        title.Margin = new Padding(4, 0, 4, 12);
+        content.Controls.Add(title, 0, 0);
+        var body = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
+        body.Controls.Add(grid);
+        if (empty is not null) body.Controls.Add(empty);
+        content.Controls.Add(body, 0, 1);
+        section.Controls.Add(content);
+        return section;
+    }
+
     private void RefreshSnapshot()
     {
         var snapshot = _engine.GetSnapshot();
+        _lastSnapshot = snapshot;
+        _snapshotReceivedAt = DateTimeOffset.UtcNow;
         if (snapshot.SettingsLoaded && !_placementRestored)
         {
             _placementRestored = true;
@@ -137,16 +198,27 @@ internal sealed class MainForm : Form
         TopMost = snapshot.Settings.AlwaysOnTop;
         _tray.Visible = snapshot.Settings.MinimizeToTray || snapshot.Settings.CloseToTray;
         _settingsButton.Enabled = snapshot.SettingsLoaded;
+        _recheckButton.Enabled = snapshot.SettingsLoaded && !snapshot.IsScanning;
         _favorites.ShowWorlds(snapshot.Favorites, snapshot.Settings);
         _tracked.ShowWorlds(snapshot.Tracked, snapshot.Settings);
-        _favoriteTitle.Text = $"Always tracked · {snapshot.Favorites.Count} / 5";
-        _trackedTitle.Text = $"Other tracked worlds · {snapshot.Tracked.Count}";
-        _layout.RowStyles[5].Height = (snapshot.Favorites.Count == 0 ? 1 : snapshot.Favorites.Count) * _favorites.RowTemplate.Height
-            + _favorites.ColumnHeadersHeight + 5;
+        _favoriteTitle.Text = $"★  Always tracked   ·   {snapshot.Favorites.Count} / 5";
+        _trackedTitle.Text = $"Fastest worlds   ·   {snapshot.Tracked.Count} connections";
+        _favoritesSection.Visible = snapshot.Favorites.Count > 0;
+        SizeWorldSections();
         _summary.Text = snapshot.IsScanning
-            ? snapshot.ScanTotal == 0 ? "Downloading the world catalogue…" : $"Checking all worlds · {snapshot.ScanCompleted} / {snapshot.ScanTotal}"
-            : $"Cutoff ≤ {snapshot.Settings.LatencyCutoffMs} ms   ·   Updates every {snapshot.Settings.RefreshIntervalSeconds} s   ·   " +
-                $"{snapshot.Worlds.Count(w => w.World is not null)} worlds discovered";
+            ? snapshot.IsRecheckingHidden ? $"◈  Reviewing hidden worlds   ·   {snapshot.ScanCompleted} / {snapshot.ScanTotal}"
+                : snapshot.ScanTotal == 0 ? "◈  Finding your worlds…" : $"◈  Scouting worlds   ·   {snapshot.ScanCompleted} / {snapshot.ScanTotal}"
+            : $"●  Live monitoring   ·   Acceptable latency ≤ {snapshot.Settings.LatencyCutoffMs} ms   ·   " +
+                $"{snapshot.HiddenCount} worlds resting until the next review";
+        _summary.ForeColor = snapshot.IsScanning ? Theme.Gold : Theme.Muted;
+        _emblem.SignalColor = snapshot.IsScanning ? Theme.Gold : snapshot.LiveCount > 0 ? Theme.Good : Theme.Muted;
+        var best = snapshot.Worlds.Where(w => w.IsTracked && w.LatestResult?.Status == ProbeStatus.Success)
+            .OrderBy(w => w.LatestResult!.RoundTripMilliseconds).ThenBy(w => w.Id).FirstOrDefault();
+        _bestPing.SetValue(best is null ? "—" : $"{best.LatestResult!.RoundTripMilliseconds} ms",
+            best is null ? "Waiting for a response" : $"World {best.Id} · {best.World!.Region}", Theme.Good);
+        _liveWorlds.SetValue($"{snapshot.LiveCount} / {MonitoringEngine.MaximumTrackedWorlds}",
+            $"{snapshot.Settings.RefreshIntervalSeconds}s updates · {snapshot.Favorites.Count} always tracked");
+        RefreshCountdown();
         _progress.Visible = snapshot.IsScanning;
         _progress.Style = snapshot.ScanTotal == 0 ? ProgressBarStyle.Marquee : ProgressBarStyle.Continuous;
         _progress.Maximum = Math.Max(snapshot.ScanTotal, 1);
@@ -154,10 +226,38 @@ internal sealed class MainForm : Form
         _notice.Text = snapshot.Notice ?? "";
         _notice.Visible = snapshot.Notice is not null;
         _empty.Visible = snapshot.Tracked.Count == 0;
-        _empty.Text = snapshot.IsScanning ? "Checking every world once. Live tracking resumes when the scan finishes."
-            : snapshot.Worlds.All(w => w.World is null) ? "No catalogue is available. Open settings or retry the world scan."
-            : "No other worlds are being tracked. Open World tracking to enable worlds or change the cutoff and recheck.";
-        _retryButton.Visible = !snapshot.IsScanning && snapshot.Worlds.All(w => w.World is null);
+        _empty.Text = snapshot.IsScanning ? "Scouting for your fastest connections…"
+            : snapshot.Worlds.All(w => w.World is null) ? "Your world list is waiting.\nSelect Recheck worlds to try again."
+            : "No automatic worlds to show yet.\nAdjust the cutoff in Settings, or wait for the next world review.";
+        if (_empty.Visible) _empty.BringToFront();
+    }
+
+    private void RefreshCountdown()
+    {
+        if (_lastSnapshot is not { } snapshot) return;
+        if (snapshot.IsScanning)
+            _nextReview.SetValue("Scouting…", snapshot.IsRecheckingHidden ? "Updating the top 20" : "Finding the best connections", Theme.Gold);
+        else if (snapshot.NextHiddenRecheckAt is { } next)
+        {
+            var remaining = next - snapshot.CapturedAt - (DateTimeOffset.UtcNow - _snapshotReceivedAt);
+            int seconds = Math.Max(0, (int)Math.Ceiling(remaining.TotalSeconds));
+            _nextReview.SetValue($"{seconds / 60:00}:{seconds % 60:00}", $"{snapshot.HiddenCount} hidden worlds · every 5 min", Theme.Gold);
+        }
+        else
+            _nextReview.SetValue("—", "After the first world scan", Theme.Gold);
+    }
+
+    private void SizeWorldSections()
+    {
+        float scale = DeviceDpi / 96f;
+        bool compact = ClientSize.Height < 700 * scale;
+        _layout.RowStyles[0].Height = (compact ? 88 : 108) * scale;
+        _layout.RowStyles[1].Height = (compact ? 104 : 124) * scale;
+        int count = _lastSnapshot?.Favorites.Count ?? 0;
+        int visibleRows = compact ? Math.Min(count, 1) : ClientSize.Height < 800 * scale ? Math.Min(count, 2) : count;
+        _layout.RowStyles[4].Height = count == 0 ? 0
+            : visibleRows * _favorites.RowTemplate.Height + _favoritesSection.Padding.Vertical
+                + _favoriteTitle.PreferredHeight + _favoriteTitle.Margin.Vertical + 16 * scale;
     }
 
     private async Task RecheckAsync()
@@ -191,7 +291,7 @@ internal sealed class MainForm : Form
         else
             _lastVisibleState = WindowState;
         _notice.MaximumSize = new Size(Math.Max(200, ClientSize.Width - 50), 0);
-        _empty.MaximumSize = _notice.MaximumSize;
+        SizeWorldSections();
     }
 
     private void RestoreFromTray()
