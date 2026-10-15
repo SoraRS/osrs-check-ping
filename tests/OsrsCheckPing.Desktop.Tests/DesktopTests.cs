@@ -42,6 +42,9 @@ public sealed class DesktopTests
     {
         window.WindowState = WindowState.Normal;
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        // Restored bounds can be centered; a full-desktop test window must start at the work-area origin
+        // so native pointer input can reach its last column, not just an off-screen rendered preview.
+        window.Left = SystemParameters.WorkArea.Left; window.Top = SystemParameters.WorkArea.Top;
         window.Width = width; window.Height = height;
         await UntilAsync(() => Math.Abs(window.ActualWidth - width) < 1 && Math.Abs(window.ActualHeight - height) < 1);
         window.UpdateLayout();
