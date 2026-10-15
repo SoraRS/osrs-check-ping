@@ -53,7 +53,16 @@ public sealed class DesktopTests
         Assert.True(element.IsVisible && element.IsEnabled, $"{element.Name} must be available for a native click.");
         var at = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
         Assert.True(SetCursorPos((int)at.X, (int)at.Y));
-        await UntilAsync(() => element.IsMouseOver); // Let WPF process the pointer move before sending button input.
+        try { await UntilAsync(() => element.IsMouseOver); } // Let WPF process the pointer move before sending button input.
+        catch (TimeoutException error)
+        {
+            var window = Window.GetWindow(element);
+            var hit = window.InputHitTest(window.PointFromScreen(at)) as DependencyObject;
+            var path = new List<string>();
+            for (var node = hit; node is not null; node = VisualTreeHelper.GetParent(node))
+                path.Add(node is FrameworkElement view ? $"{view.GetType().Name}({view.Name}, {view.ActualWidth}x{view.ActualHeight})" : node.GetType().Name);
+            throw new InvalidOperationException($"Pointer at {at}, WPF {Mouse.GetPosition(window)} did not enter {element.Name} ({element.ActualWidth}x{element.ActualHeight}). Hit: {string.Join(" > ", path)}", error);
+        }
         Input[] input = [new() { Data = new() { Mouse = new() { Flags = 0x0002 } } }, new() { Data = new() { Mouse = new() { Flags = 0x0004 } } }];
         int clicks = 0;
         RoutedEventHandler clicked = (_, _) => clicks++;
