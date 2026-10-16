@@ -16,6 +16,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OsrsWorldPing.Core/OsrsWorldPing.Core.csproj" />
-    <Resource Include="Assets/**/*.png;Assets/*.ico;Assets/Osrs/LICENSE-RuneLite.txt;Assets/Osrs/SOURCES.md" />
+    <Resource Include="Assets/**/*.png;Assets/*.ico;Assets/Osrs/LICENSE-RuneLite.txt;Assets/Osrs/SOURCES.md;Assets/Icons/*.txt;Assets/Icons/*.md;Assets/Icons/*.svg" />
   </ItemGroup>
 </Project>

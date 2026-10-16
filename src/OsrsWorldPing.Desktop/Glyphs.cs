@@ -74,24 +74,6 @@ public sealed class FlagGlyph : FrameworkElement
     }
 }
 
-public sealed class SignalGlyph : FrameworkElement
-{
-    public static readonly DependencyProperty LevelProperty = DependencyProperty.Register(nameof(Level), typeof(int), typeof(SignalGlyph), new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender));
-    public static readonly DependencyProperty GoodProperty = DependencyProperty.Register(nameof(Good), typeof(bool), typeof(SignalGlyph), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
-    public int Level { get => (int)GetValue(LevelProperty); set => SetValue(LevelProperty, value); }
-    public bool Good { get => (bool)GetValue(GoodProperty); set => SetValue(GoodProperty, value); }
-    protected override void OnRender(DrawingContext dc)
-    {
-        var active = new SolidColorBrush(Good ? Color.FromRgb(148, 204, 177) : Color.FromRgb(221, 173, 101));
-        var inactive = new SolidColorBrush(Color.FromRgb(70, 72, 69));
-        for (int i = 0; i < 5; i++)
-        {
-            double h = ActualHeight * (i + 1) / 5;
-            dc.DrawRoundedRectangle(i < Level ? active : inactive, null, new(i * ActualWidth / 5, ActualHeight - h, ActualWidth / 7, h), 1, 1);
-        }
-    }
-}
-
 public sealed class ActivityGlyph : FrameworkElement
 {
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(nameof(Kind), typeof(ActivityIcon), typeof(ActivityGlyph), new FrameworkPropertyMetadata(ActivityIcon.World, FrameworkPropertyMetadataOptions.AffectsRender));

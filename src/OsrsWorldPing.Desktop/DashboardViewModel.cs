@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 using OsrsWorldPing.Core;
@@ -40,7 +39,6 @@ public sealed class WorldCardModel : ObservableModel
     public WorldCardModel(WorldSnapshot snapshot, DashboardViewModel owner)
     {
         _snapshot = snapshot;
-        ToggleTracking = new UiCommand(() => { owner.SetTracking(this); return Task.CompletedTask; });
         ToggleFavorite = new UiCommand(() => owner.SetFavoriteAsync(this));
     }
     public int Id => _snapshot.Id;
@@ -49,14 +47,13 @@ public sealed class WorldCardModel : ObservableModel
     public string WorldLabel => $"World {Id}";
     public bool IsFavorite => _snapshot.IsFavorite;
     public bool IsTracked => _snapshot.IsTracked;
-    public bool CanTrack => !_snapshot.IsFavorite && _snapshot.World is not null;
     public bool IsMembers => _snapshot.World?.Members == true;
     public bool HasWorld => _snapshot.World is not null;
     public string? ActivitySprite => WorldActivityArt.SpriteFor(_snapshot.World) is { } name
         ? $"pack://application:,,,/OsrsWorldPing;component/Assets/Osrs/{name}.png" : null;
     public bool HasActivitySprite => ActivitySprite is not null;
-    public string TrackingHint => IsFavorite ? $"World {Id} is always tracked while it is a favorite" :
-        IsTracked ? $"Stop tracking world {Id} for this session" : $"Track world {Id} for this session";
+    public bool HasActivityFallback => !HasActivitySprite;
+    public bool ShowScanResult => HasWorld && !IsTracked;
     public string FavoriteHint => IsFavorite ? $"Remove world {Id} from favorites" : $"Always track world {Id} (up to five favorites)";
     public string CountryCode => Metadata.CountryCode;
     public string Region => Metadata.Region;
@@ -75,15 +72,11 @@ public sealed class WorldCardModel : ObservableModel
         _ => "Waiting"
     };
     public bool IsGood => HasWorld && _snapshot.LatestResult?.IsGood(_cutoff) == true;
-    public int Signal => !HasWorld || _snapshot.LatestResult is not { Status: ProbeStatus.Success, RoundTripMilliseconds: >= 0 } ? 0 :
-        _snapshot.LatestResult.RoundTripMilliseconds <= _cutoff / 2d ? 5 : IsGood ? 4 :
-        _snapshot.LatestResult.RoundTripMilliseconds <= _cutoff * 2 ? 3 : 1;
     public string ReadingLabel => !HasWorld ? "Unavailable" : !_snapshot.IsTracked ? "Scan result" :
         _snapshot.IsScanResult ? "Initial reading" : "Live reading";
     public string ReadingDetails => $"{ReadingLabel} · {(_snapshot.LastChecked is { } at ? at.ToLocalTime().ToString("g") : "Not checked yet")}";
     public string AccessibleDescription => $"{WorldLabel}, {Region}, {Membership}, {Activity}, {Latency}" +
         (IsDangerous ? $", Warning: {DangerReason}" : "");
-    public ICommand ToggleTracking { get; }
     public ICommand ToggleFavorite { get; }
     public void Update(WorldSnapshot snapshot, int cutoff, bool force = false)
     {
@@ -97,27 +90,29 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     private readonly MonitoringEngine _engine;
     private readonly Dispatcher _dispatcher;
     private readonly Dictionary<int, WorldCardModel> _models = [];
-    private bool _disposed, _preferencesLoaded, _showSettings, _browseHidden;
-    private int _queued;
-    private string _filterMembership = "";
-    private string _search = "", _cutoff = "30", _interval = "5", _feedback = "";
+    private bool _disposed, _preferencesLoaded, _showSettings, _showAllWorlds;
+    private int _queued, _selectedSettingsTab;
+    private DateTimeOffset? _summarizedCatalogue;
+    private string _cutoff = "30", _interval = "5", _feedback = "", _favoriteFeedback = "";
+    private string _connectionSummary = "Waiting for the initial world check.";
+    private bool _connectionHealthy;
     private bool _topmost, _minimizeToTray, _closeToTray;
     public DashboardViewModel(MonitoringEngine engine, Dispatcher dispatcher)
     {
         _engine = engine; _dispatcher = dispatcher;
         Snapshot = engine.GetSnapshot();
-        WorldView = CollectionViewSource.GetDefaultView(AllWorlds);
-        WorldView.Filter = item => Matches((WorldCardModel)item);
         OpenSettings = new UiCommand(() => { ShowSettings = true; return Task.CompletedTask; });
+        OpenConnectionSettings = new UiCommand(() => { SelectedSettingsTab = 1; ShowSettings = true; return Task.CompletedTask; });
         BackToWorlds = new UiCommand(() => { ShowSettings = false; return Task.CompletedTask; });
+        ToggleSettings = new UiCommand(() => { ShowSettings = !ShowSettings; return Task.CompletedTask; });
         CheckConnection = new UiCommand(async () =>
         {
             Feedback = "";
-            try { await _engine.RecheckAsync(); }
+            try { await _engine.RecheckAsync(); Refresh(); UpdateConnectionSummary(); }
             catch (OperationCanceledException) { }
             catch (Exception error) { Feedback = $"Connection check failed: {error.Message}"; }
         });
-        ResetTracking = new UiCommand(() => { _engine.ResetManualTracking(); Feedback = "Session choices reset."; return Task.CompletedTask; });
+        ResetDefaults = new UiCommand(ResetDefaultsAsync);
         ApplySettings = new UiCommand(ApplyAsync);
         _engine.Changed += OnEngineChanged;
         Refresh();
@@ -126,13 +121,21 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public ObservableCollection<WorldCardModel> AllWorlds { get; } = [];
     public ObservableCollection<WorldCardModel> Favorites { get; } = [];
     public ObservableCollection<WorldCardModel> Tracked { get; } = [];
-    public ICollectionView WorldView { get; }
-    public bool ShowSettings { get => _showSettings; set { if (Set(ref _showSettings, value)) Notify(nameof(ShowDashboard)); } }
+    public ObservableCollection<WorldCardModel> Hidden { get; } = [];
+    public bool ShowSettings { get => _showSettings; set { if (Set(ref _showSettings, value)) Notify(null); } }
     public bool ShowDashboard => !ShowSettings;
-    public bool BrowseHidden { get => _browseHidden; set { if (Set(ref _browseHidden, value)) WorldView.Refresh(); } }
-    public string Search { get => _search; set { if (Set(ref _search, value)) WorldView.Refresh(); } }
-    public string Cutoff { get => _cutoff; set => Set(ref _cutoff, value); }
-    public string Interval { get => _interval; set => Set(ref _interval, value); }
+    public int SelectedSettingsTab { get => _selectedSettingsTab; set { if (Set(ref _selectedSettingsTab, value)) Notify(null); } }
+    public bool ShowWorldTracking => ShowSettings && SelectedSettingsTab == 0;
+    public bool ShowAllWorlds { get => _showAllWorlds; set { if (Set(ref _showAllWorlds, value)) Notify(null); } }
+    public bool ShowHiddenWorlds => ShowWorldTracking && ShowAllWorlds;
+    public string ShowAllLabel => ShowAllWorlds ? "Hide all" : "Show all";
+    public string Cutoff { get => _cutoff; set { if (Set(ref _cutoff, value)) Notify(null); } }
+    public string Interval { get => _interval; set { if (Set(ref _interval, value)) Notify(null); } }
+    public string? CutoffError => int.TryParse(Cutoff, out int value) && value is >= 1 and <= 2000 ? null : "Enter a value from 1 to 2,000 ms.";
+    public string? IntervalError => int.TryParse(Interval, out int value) && value is >= 5 and <= 600 ? null : "Enter a value from 5 to 600 seconds.";
+    public bool CanApplySettings => Snapshot.SettingsLoaded && CutoffError is null && IntervalError is null;
+    public bool HasCutoffError => CutoffError is not null;
+    public bool HasIntervalError => IntervalError is not null;
     public bool AlwaysOnTop { get => _topmost; set => Set(ref _topmost, value); }
     public bool MinimizeToTray { get => _minimizeToTray; set => Set(ref _minimizeToTray, value); }
     public bool CloseToTray { get => _closeToTray; set => Set(ref _closeToTray, value); }
@@ -140,6 +143,8 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public bool HasFavorites => Favorites.Count > 0;
     public bool HasTracked => Tracked.Count > 0;
     public bool HasFeedback => !string.IsNullOrEmpty(Feedback);
+    public string FavoriteFeedback { get => _favoriteFeedback; private set { if (Set(ref _favoriteFeedback, value)) Notify(nameof(HasFavoriteFeedback)); } }
+    public bool HasFavoriteFeedback => !string.IsNullOrEmpty(FavoriteFeedback);
     public bool HasNotice => Snapshot.Notice is not null;
     public string LiveCount => Snapshot.LiveCount.ToString();
     public string BestConnection => Snapshot.Worlds.Where(w => w.IsTracked && w.LatestResult?.Status == ProbeStatus.Success)
@@ -152,18 +157,17 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public string ScanStatus => Snapshot.IsScanning ? $"{(Snapshot.IsRecheckingHidden ? "Reviewing hidden worlds" : "Checking all worlds")} · {Snapshot.ScanCompleted} / {Snapshot.ScanTotal}" : "Ready";
     public bool CanCheckConnection => Snapshot.SettingsLoaded && !Snapshot.IsScanning;
     public double ScanMaximum => Math.Max(1, Snapshot.ScanTotal);
-    public string CatalogueStatus => Snapshot.CatalogueFetchedAt is { } fetched ? $"World catalogue saved {fetched.ToLocalTime():g}" : "No saved world catalogue";
-    public string MonitoringStatus => $"{Snapshot.LiveCount} live · {Snapshot.HiddenCount} hidden · {Snapshot.Settings.RefreshIntervalSeconds}s refresh · hidden worlds reviewed every 5 minutes";
+    public string WorldsUpdatedAt => Snapshot.CatalogueFetchedAt is { } fetched ? $"Worlds updated at {fetched.ToLocalTime():g}" : "Worlds have not been downloaded";
+    public string ConnectionSummary => Snapshot.IsScanning ? ScanStatus : _connectionSummary;
+    public bool ConnectionHealthy => !Snapshot.IsScanning && _connectionHealthy;
     public string Version => $"Version {typeof(DashboardViewModel).Assembly.GetName().Version?.ToString(3)} · Windows x64";
     public ICommand OpenSettings { get; }
+    public ICommand OpenConnectionSettings { get; }
     public ICommand BackToWorlds { get; }
+    public ICommand ToggleSettings { get; }
     public ICommand CheckConnection { get; }
-    public ICommand ResetTracking { get; }
+    public ICommand ResetDefaults { get; }
     public ICommand ApplySettings { get; }
-
-    private bool Matches(WorldCardModel world) => (BrowseHidden || world.IsTracked || world.IsFavorite) &&
-        (string.IsNullOrWhiteSpace(Search) || $"{world.Id} {world.Region} {world.Activity} {world.Membership}"
-            .Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private void OnEngineChanged(object? sender, EventArgs args)
     {
@@ -191,9 +195,10 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
         }
         Sync(AllWorlds, Snapshot.Worlds.OrderBy(w => w.Id));
         Sync(Favorites, Snapshot.Favorites); Sync(Tracked, Snapshot.Tracked);
+        Sync(Hidden, Snapshot.Worlds.Where(w => !w.IsTracked && !w.IsFavorite).OrderBy(w => w.Id));
         foreach (var id in _models.Keys.Except(Snapshot.Worlds.Select(w => w.Id)).ToArray()) _models.Remove(id);
-        string membership = string.Join(",", Snapshot.Worlds.Where(w => w.IsTracked || w.IsFavorite).Select(w => w.Id).Order());
-        if (_filterMembership != membership) { _filterMembership = membership; if (!BrowseHidden) WorldView.Refresh(); }
+        if (!Snapshot.IsScanning && Snapshot.CatalogueFetchedAt is { } at && at != _summarizedCatalogue)
+        { _summarizedCatalogue = at; UpdateConnectionSummary(); }
         // No window activation, selection, or scroll operations belong in this path.
         Notify(null);
     }
@@ -210,19 +215,31 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
         }
     }
 
-    public void SetTracking(WorldCardModel world)
-    {
-        Feedback = _engine.SetTracking(world.Id, !world.IsTracked) ? "Tracking updated for this session." :
-            "All 25 ordinary slots are explicitly assigned. Turn off a session choice first. Favorite worlds stay tracked.";
-        Refresh();
-        world.Update(world.Snapshot, Snapshot.Settings.LatencyCutoffMs, force: true);
-    }
     public async Task SetFavoriteAsync(WorldCardModel world)
     {
-        try { Feedback = await _engine.SetFavoriteAsync(world.Id, !world.IsFavorite) ? "Favorites updated." : "You can save up to five favorites. Remove one first."; }
+        try { FavoriteFeedback = await _engine.SetFavoriteAsync(world.Id, !world.IsFavorite) ? "" : "You can save up to five favorites. Remove one first."; }
         catch (OperationCanceledException) { }
         Refresh();
         world.Update(world.Snapshot, Snapshot.Settings.LatencyCutoffMs, force: true);
+    }
+    private void UpdateConnectionSummary()
+    {
+        var worlds = Snapshot.Worlds.Where(w => w.World is not null).ToArray();
+        int responded = worlds.Count(w => w.LatestResult?.Status == ProbeStatus.Success);
+        _connectionHealthy = worlds.Length > 0 && responded == worlds.Length;
+        _connectionSummary = worlds.Length == 0 ? "World catalogue unavailable. Check your connection and retry." :
+            _connectionHealthy ? $"All {worlds.Length} worlds replied." : $"{responded} of {worlds.Length} worlds replied. Others timed out or could not be reached.";
+        Notify(nameof(ConnectionSummary)); Notify(nameof(ConnectionHealthy));
+    }
+    private async Task ResetDefaultsAsync()
+    {
+        try
+        {
+            await _engine.UpdatePreferencesAsync(30, 5, false, false, false);
+            Cutoff = "30"; Interval = "5"; AlwaysOnTop = MinimizeToTray = CloseToTray = false;
+            Feedback = "Default application preferences restored. Favorites and window placement are kept.";
+        }
+        catch (OperationCanceledException) { }
     }
     private async Task ApplyAsync()
     {
