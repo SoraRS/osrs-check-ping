@@ -191,9 +191,10 @@ public partial class MainWindow : Window
                 Fill = new SolidColorBrush(i % 3 == 0 ? Color.FromRgb(255, 233, 168) : Color.FromRgb(216, 181, 117)), RenderTransform = offset };
             Canvas.SetLeft(spark, 31); Canvas.SetTop(spark, 31); GearSparks.Children.Add(spark);
             var duration = TimeSpan.FromMilliseconds(320 + i % 3 * 20);
-            double x = Math.Cos(angle) * reach, y = Math.Sin(angle) * reach + 12;
-            offset.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(opening ? 0 : x, opening ? x : 0, duration));
-            offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(opening ? 0 : y, opening ? y : 0, duration));
+            double edgeX = Math.Cos(angle) * 21, edgeY = Math.Sin(angle) * 21;
+            double x = Math.Cos(angle) * (reach + 21), y = Math.Sin(angle) * (reach + 21) + 12;
+            offset.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(opening ? edgeX : x, opening ? x : edgeX, duration));
+            offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(opening ? edgeY : y, opening ? y : edgeY, duration));
             spark.BeginAnimation(OpacityProperty, new DoubleAnimation(.9, 0, duration));
         }
     }

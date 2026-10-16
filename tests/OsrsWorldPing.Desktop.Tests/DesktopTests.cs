@@ -247,8 +247,9 @@ public sealed class DesktopTests
             if (animate)
             {
                 Assert.True(main.IsNavigating); var sparks = (Canvas)main.FindName("GearSparks"); Assert.Equal(12, sparks.Children.Count);
+                double initialX = ((TranslateTransform)((FrameworkElement)sparks.Children[0]).RenderTransform).X;
                 await Task.Delay(100);
-                Assert.NotEqual(0, ((TranslateTransform)((FrameworkElement)sparks.Children[0]).RenderTransform).X);
+                Assert.True(Math.Abs(initialX - ((TranslateTransform)((FrameworkElement)sparks.Children[0]).RenderTransform).X) > 1);
                 Assert.InRange(((FrameworkElement)sparks.Children[0]).Opacity, 0, .899);
                 Preview(main, "navigation-sparks.png");
             }
