@@ -1,15 +1,15 @@
-# OSRS Check Ping
+# OSRS World Ping
 
-See your connection latency to Old School RuneScape worlds, keep your favorites close, and find a world with a lower ping. Check Ping is a small Windows app with a fantasy-inspired interface and world cards that stay in world-number order while their readings update.
+See your connection latency to Old School RuneScape worlds, keep your favorites close, and find a world with a lower ping. World Ping is a small Windows app with a fantasy-inspired interface and world cards that stay in world-number order while their readings update.
 
 ## Download and open
 
 1. Use **Windows x64** and install Microsoft's **[.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)**. Select **Desktop Runtime**; the standard or ASP.NET runtime alone is not enough.
-2. Download `OsrsCheckPing.exe` from [Releases](https://github.com/SoraRS/osrs-check-ping/releases) when a release is available. For testing builds, follow the steps below.
-3. Extract the download to a folder you want to keep, then open `OsrsCheckPing.exe`. No installer or administrator access is normally required.
+2. Download `OsrsWorldPing.exe` from [Releases](https://github.com/SoraRS/osrs-world-ping/releases) when a release is available. For testing builds, follow the steps below.
+3. Extract the download to a folder you want to keep, then open `OsrsWorldPing.exe`. No installer or administrator access is normally required.
 4. The app starts maximized and checks every world once. Open the **gear** to see progress or any connection notice.
 
-**To download a testing build:** sign into GitHub, open [Build and test](https://github.com/SoraRS/osrs-check-ping/actions/workflows/build.yml), and choose the latest successful run for **main**. Scroll to **Artifacts** and download **OsrsCheckPing-win-x64**, then extract its ZIP. The interface previews artifact contains pictures, rather than the application. [GitHub's download guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) explains the sign-in and download steps.
+**To download a testing build:** sign into GitHub, open [Build and test](https://github.com/SoraRS/osrs-world-ping/actions/workflows/build.yml), and choose the latest successful run for **main**. Scroll to **Artifacts** and download **OsrsWorldPing-win-x64**, then extract its ZIP. The interface previews artifact contains pictures, rather than the application. [GitHub's download guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) explains the sign-in and download steps.
 
 The compact card interface described here is **version 1.2.0 or newer**; check **Settings → About**. An older workflow run contains an older executable, even if a newer build is currently running. Testing builds may be unsigned.
 
@@ -68,12 +68,12 @@ Ordinary worlds leave the live selection after one minute's worth of consecutive
 
 **My cutoff changed from 60 to 30 ms.** Existing installations using the old 60 ms default move to 30 ms once. Other custom cutoffs are kept. You can choose 60 ms again and save it afterward.
 
-**Preferences do not survive a restart.** Check the settings page for a save error. Current choices can still work for that session. The app needs access to `%LOCALAPPDATA%\OsrsCheckPing`. To reset saved data, fully exit and rename that folder; the app creates it again next launch.
+**Preferences do not survive a restart.** Check the settings page for a save error. Current choices can still work for that session. The app needs access to `%LOCALAPPDATA%\OsrsWorldPing`. To reset saved data, fully exit and rename that folder; the app creates it again next launch.
 
 ## Privacy and help
 
 Preferences, favorites, restored window placement, and the last world catalogue are saved locally. The app downloads Jagex's public catalogue and probes its supplied world hosts. There is no game account login, analytics, or saved latency history. Read [Privacy](docs/PRIVACY.md) for details.
 
-[Report a problem](https://github.com/SoraRS/osrs-check-ping/issues) with your app version, Windows version, display scaling, and what happened. Build instructions, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
+[Report a problem](https://github.com/SoraRS/osrs-world-ping/issues) with your app version, Windows version, display scaling, and what happened. Build instructions, publishing, and Windows acceptance checks are in [the developer guide](docs/DEVELOPMENT.md).
 
-Application code and original artwork: [Apache License 2.0](LICENSE). OSRS sprites: © Jagex Ltd.; [sources and credits](src/OsrsCheckPing.Desktop/Assets/Osrs/SOURCES.md). Independent software, not affiliated with or endorsed by Jagex.
+Application code and original artwork: [Apache License 2.0](LICENSE). OSRS sprites: © Jagex Ltd.; [sources and credits](src/OsrsWorldPing.Desktop/Assets/Osrs/SOURCES.md). Independent software, not affiliated with or endorsed by Jagex.

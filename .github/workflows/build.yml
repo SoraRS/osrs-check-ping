@@ -24,12 +24,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Test portable monitoring core
-        run: dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release --logger trx
+        run: dotnet test tests/OsrsWorldPing.Core.Tests --configuration Release --logger trx
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: core-test-results
-          path: tests/OsrsCheckPing.Core.Tests/TestResults/*.trx
+          path: tests/OsrsWorldPing.Core.Tests/TestResults/*.trx
 
   windows:
     outputs:
@@ -47,37 +47,37 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release
       - name: Test monitoring core on Windows
-        run: dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release --no-build
+        run: dotnet test tests/OsrsWorldPing.Core.Tests --configuration Release --no-build
       - name: Test Windows interface
-        run: dotnet test tests/OsrsCheckPing.Desktop.Tests --configuration Release --no-build
+        run: dotnet test tests/OsrsWorldPing.Desktop.Tests --configuration Release --no-build
       - name: Save Windows interface previews
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: Windows-interface-previews
-          path: tests/OsrsCheckPing.Desktop.Tests/bin/Release/net10.0-windows/ui-preview/*.png
+          path: tests/OsrsWorldPing.Desktop.Tests/bin/Release/net10.0-windows/ui-preview/*.png
           if-no-files-found: ignore
       - name: Publish Windows executable
-        run: dotnet publish src/OsrsCheckPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
+        run: dotnet publish src/OsrsWorldPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
       - name: Verify single executable output
         shell: pwsh
         run: |
           $files = @(Get-ChildItem artifacts/win-x64 -File)
-          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsCheckPing.exe') {
-            throw 'Expected exactly one file: OsrsCheckPing.exe'
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsWorldPing.exe') {
+            throw 'Expected exactly one file: OsrsWorldPing.exe'
           }
       - name: Smoke test published executable
         shell: pwsh
         run: |
-          $app = Start-Process artifacts/win-x64/OsrsCheckPing.exe -PassThru
+          $app = Start-Process artifacts/win-x64/OsrsWorldPing.exe -PassThru
           try {
             if (-not $app.WaitForInputIdle(15000)) { throw 'Application did not become responsive' }
             $deadline = (Get-Date).AddSeconds(15)
             do {
               Start-Sleep -Milliseconds 250
               $app.Refresh()
-            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') -and (Get-Date) -lt $deadline)
-            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
+            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS World Ping') -and (Get-Date) -lt $deadline)
+            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS World Ping') {
               throw "Application did not open its main window. Title: '$($app.MainWindowTitle)'"
             }
             if (-not $app.CloseMainWindow()) { throw 'Could not close the application' }
@@ -89,6 +89,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         id: executable
         with:
-          name: OsrsCheckPing-win-x64
-          path: artifacts/win-x64/OsrsCheckPing.exe
+          name: OsrsWorldPing-win-x64
+          path: artifacts/win-x64/OsrsWorldPing.exe
           if-no-files-found: error

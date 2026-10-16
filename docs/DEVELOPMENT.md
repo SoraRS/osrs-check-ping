@@ -6,23 +6,23 @@ Install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.
 
 ```sh
 dotnet build --configuration Release
-dotnet test tests/OsrsCheckPing.Core.Tests --configuration Release
+dotnet test tests/OsrsWorldPing.Core.Tests --configuration Release
 ```
 
 On Windows:
 
 ```sh
-dotnet run --project src/OsrsCheckPing.Desktop
-dotnet test tests/OsrsCheckPing.Desktop.Tests --configuration Release
+dotnet run --project src/OsrsWorldPing.Desktop
+dotnet test tests/OsrsWorldPing.Desktop.Tests --configuration Release
 ```
 
 Publish the framework-dependent single file:
 
 ```sh
-dotnet publish src/OsrsCheckPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
+dotnet publish src/OsrsWorldPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
 ```
 
-The output folder must contain only `OsrsCheckPing.exe`. The target machine needs the .NET 10 Desktop Runtime x64. Builds/tests use no game account or external latency API.
+The output folder must contain only `OsrsWorldPing.exe`. The target machine needs the .NET 10 Desktop Runtime x64. Builds/tests use no game account or external latency API.
 
 The core targets portable `net10.0`. WPF and UI tests target `net10.0-windows`; Linux can cross-compile them with Windows targeting, but cannot run WPF or validate Windows rendering. A successful Linux build is not evidence of visual acceptance.
 
@@ -34,7 +34,7 @@ Twenty ordinary slots use manual-on priority, then successful eligible latency, 
 
 `WorldMetadata` derives country, activity, and main-character risk presentation from catalogue data. Location and flag mappings are documented in source with links to RuneLite's public protocol definitions. Unknown codes/activities use neutral fallbacks. Fallback icons and the emblem are original vector artwork; supported activities use genuine OSRS skill/boss sprites with provenance in `Assets/Osrs/SOURCES.md`. The observatory is an original generated background. No artwork is fetched at runtime. Compact world tiles share a template across the dashboard and tracking settings. The tracking surface is transparent; inactive tiles fade and recover on hover. Glow/lift and heart animations honor Windows client-area animation preferences, and hover clocks stop when unloaded.
 
-Settings and the cached catalogue remain in `%LOCALAPPDATA%\OsrsCheckPing`. A missing/legacy schema marker triggers the one-time 60→30 ms migration; the migrated file is atomically saved immediately. Current-schema settings can deliberately use 60 ms. Session overrides and readings are never serialized.
+Settings and the cached catalogue remain in `%LOCALAPPDATA%\OsrsWorldPing`. A missing/legacy schema marker triggers the one-time 60→30 ms migration; the migrated file is atomically saved immediately. Current-schema settings can deliberately use 60 ms. Session overrides and readings are never serialized.
 
 ## CI and previews
 

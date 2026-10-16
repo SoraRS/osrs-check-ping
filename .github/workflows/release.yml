@@ -46,8 +46,8 @@ jobs:
         shell: pwsh
         run: |
           $files = @(Get-ChildItem artifacts/signed -File -Recurse)
-          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsCheckPing.exe') {
-            throw 'Expected only the signed OsrsCheckPing.exe'
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'OsrsWorldPing.exe') {
+            throw 'Expected only the signed OsrsWorldPing.exe'
           }
           $signature = Get-AuthenticodeSignature $files[0].FullName
           if ($signature.Status -ne 'Valid' -or $null -eq $signature.TimeStamperCertificate -or
@@ -60,7 +60,7 @@ jobs:
       - name: Smoke test signed executable
         shell: pwsh
         run: |
-          $file = Get-ChildItem artifacts/signed/OsrsCheckPing.exe
+          $file = Get-ChildItem artifacts/signed/OsrsWorldPing.exe
           $app = Start-Process $file.FullName -PassThru
           try {
             if (-not $app.WaitForInputIdle(15000)) { throw 'Application did not become responsive' }
@@ -68,8 +68,8 @@ jobs:
             do {
               Start-Sleep -Milliseconds 250
               $app.Refresh()
-            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') -and (Get-Date) -lt $deadline)
-            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS Check Ping') {
+            } while (-not $app.HasExited -and ($app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS World Ping') -and (Get-Date) -lt $deadline)
+            if ($app.HasExited -or $app.MainWindowHandle -eq 0 -or $app.MainWindowTitle -ne 'OSRS World Ping') {
               throw "Signed application did not open its main window. Title: '$($app.MainWindowTitle)'"
             }
             if (-not $app.CloseMainWindow() -or -not $app.WaitForExit(15000) -or $app.ExitCode -ne 0) {
@@ -79,10 +79,10 @@ jobs:
       - name: Hash final signed bytes
         shell: pwsh
         run: |
-          $hash = (Get-FileHash artifacts/signed/OsrsCheckPing.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  OsrsCheckPing.exe" | Set-Content artifacts/signed/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash artifacts/signed/OsrsWorldPing.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  OsrsWorldPing.exe" | Set-Content artifacts/signed/SHA256SUMS.txt -Encoding ascii
       - uses: actions/upload-artifact@v7
         with:
-          name: OsrsCheckPing-signed-release-candidate
+          name: OsrsWorldPing-signed-release-candidate
           path: artifacts/signed/*
           if-no-files-found: error
