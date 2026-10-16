@@ -8,7 +8,7 @@ Once the project is accepted, free code signing is provided by [SignPath.io](htt
 
 ## Signing policy
 
-Only the final framework-dependent Windows x64 `OsrsCheckPing.exe`, built from this repository's reviewed `main` branch by GitHub-hosted CI, is eligible. No third-party binaries are submitted. Runtime dependencies are supplied by the installed Microsoft Desktop Runtime.
+Only the final framework-dependent Windows x64 `OsrsWorldPing.exe`, built from this repository's reviewed `main` branch by GitHub-hosted CI, is eligible. No third-party binaries are submitted. Runtime dependencies are supplied by the installed Microsoft Desktop Runtime.
 
 Contributors propose changes through pull requests. A maintainer reviews source changes, test results, the Windows smoke test, and UI previews before signing. The project administrator manages access and enrollment; an authorized release approver manually approves each production signing request. SignPath account access must use MFA. Configure the actual people and roles in SignPath during enrollment; this repository does not invent additional team members.
 
@@ -30,8 +30,8 @@ Integration follows [SignPath's GitHub documentation](https://docs.signpath.io/t
 Download from the project's releases, open **Properties → Digital Signatures**, and inspect the certificate. Production builds should have a valid SignPath Foundation signature and trusted timestamp. CI testing artifacts may have no signature. You can also run PowerShell:
 
 ```powershell
-Get-AuthenticodeSignature .\OsrsCheckPing.exe | Format-List Status,SignerCertificate,TimeStamperCertificate
-Get-FileHash .\OsrsCheckPing.exe -Algorithm SHA256
+Get-AuthenticodeSignature .\OsrsWorldPing.exe | Format-List Status,SignerCertificate,TimeStamperCertificate
+Get-FileHash .\OsrsWorldPing.exe -Algorithm SHA256
 ```
 
 Compare the hash with the checksum accompanying that exact signed release. An unsigned or modified file is not equivalent to the signed release candidate. A valid signature does not guarantee that Windows SmartScreen will immediately stop showing warnings.
