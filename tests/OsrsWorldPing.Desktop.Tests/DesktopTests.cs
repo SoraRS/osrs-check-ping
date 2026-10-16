@@ -153,6 +153,8 @@ public sealed class DesktopTests
             {
                 tabs.SelectedIndex = tab; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
                 Assert.True(header.IsVisible); Assert.True(cards.IsVisible); Assert.True(favorites.IsVisible);
+                var selectedLabel = Children<TextBlock>((TabItem)tabs.Items[tab]).Single();
+                Assert.Equal(Color.FromRgb(216, 181, 117), ((SolidColorBrush)selectedLabel.Foreground).Color);
                 Assert.True(cards.TranslatePoint(new Point(), main).Y >= ((Grid)main.FindName("SettingsReveal")).TranslatePoint(new Point(), main).Y + ((Grid)main.FindName("SettingsReveal")).ActualHeight);
                 Assert.Equal(30, main.Model.Snapshot.LiveCount);
                 if (tab > 0)
@@ -170,7 +172,8 @@ public sealed class DesktopTests
             Assert.True(((ItemsControl)main.FindName("HiddenCards")).IsVisible);
             Assert.Equal("Hide all", main.Model.ShowAllLabel); Preview(main, "tracking-expanded.png");
             await ClickAsync(showAll); Assert.False(main.Model.ShowAllWorlds);
-            await ClickAsync((ToggleButton)Tile(306).FindName("FavoriteToggle"));
+            var rejectedHeart = (ToggleButton)Tile(306).FindName("FavoriteToggle");
+            await ClickAsync(rejectedHeart); Assert.False(rejectedHeart.IsChecked);
             Assert.False(main.Model.AllWorlds.Single(w => w.Id == 306).IsFavorite); Assert.Equal(5, main.Model.Favorites.Count);
             Assert.Contains("up to five", main.Model.FavoriteFeedback);
             main.Model.ShowSettings = false;
@@ -233,14 +236,23 @@ public sealed class DesktopTests
             await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
             bool animate = Motion.CanAnimate(main);
             main.Model.ShowSettings = true;
-            if (animate) { Assert.True(main.IsNavigating); Assert.Equal(12, ((Canvas)main.FindName("GearSparks")).Children.Count); }
+            if (animate)
+            {
+                Assert.True(main.IsNavigating); var sparks = (Canvas)main.FindName("GearSparks"); Assert.Equal(12, sparks.Children.Count);
+                await Task.Delay(100);
+                Assert.NotEqual(0, ((TranslateTransform)((FrameworkElement)sparks.Children[0]).RenderTransform).X);
+                Assert.InRange(((FrameworkElement)sparks.Children[0]).Opacity, 0, .899);
+                Preview(main, "navigation-sparks.png");
+            }
             main.Model.ShowSettings = false; main.Model.ShowSettings = true; // Reverse an in-flight transition without leaving stale clocks or particles.
             await UntilAsync(() => !main.IsNavigating);
             Assert.True(main.Model.ShowSettings); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
             main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             await UntilAsync(() => !main.IsNavigating);
             Assert.True(((Grid)main.FindName("SettingsReveal")).ActualHeight > 250);
-            Motion.SetEnabled(main, false); main.Model.ShowSettings = false; main.Model.ShowSettings = true;
+            main.Model.ShowSettings = false; main.Model.ShowSettings = true;
+            Motion.SetEnabled(main, false); // Also stop a transition already in flight.
+            main.Model.ShowSettings = false; main.Model.ShowSettings = true;
             Assert.False(main.IsNavigating); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
             var footer = (Grid)main.FindName("ReviewFooter"); main.UpdateLayout(); var before = footer.TranslatePoint(new Point(), main);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -263,9 +275,9 @@ public sealed class DesktopTests
             await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
             main.Model.OpenConnectionSettings.Execute(null); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
             var apply = (Button)main.FindName("ApplySettingsButton");
-            foreach (string invalid in new[] { "", "0", "2001", "abc" }) { main.Model.Cutoff = invalid; Assert.False(main.Model.CanApplySettings); }
+            foreach (string invalid in new[] { "", "0", "2001", "abc" }) { main.Model.Cutoff = invalid; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); Assert.False(main.Model.CanApplySettings); Assert.False(apply.IsEnabled); Assert.True(main.Model.HasCutoffError); }
             main.Model.Cutoff = "1";
-            foreach (string invalid in new[] { "", "4", "601", "abc" }) { main.Model.Interval = invalid; Assert.False(main.Model.CanApplySettings); }
+            foreach (string invalid in new[] { "", "4", "601", "abc" }) { main.Model.Interval = invalid; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); Assert.False(main.Model.CanApplySettings); Assert.False(apply.IsEnabled); Assert.True(main.Model.HasIntervalError); }
             main.Model.Interval = "5"; Assert.True(main.Model.CanApplySettings);
             main.Model.Cutoff = "2000"; main.Model.Interval = "600"; Assert.True(main.Model.CanApplySettings);
             main.Model.AlwaysOnTop = main.Model.MinimizeToTray = main.Model.CloseToTray = true;
@@ -367,6 +379,7 @@ public sealed class DesktopTests
             Assert.Equal("Timeout", main.Model.Favorites.Single(w => w.Id == 301).Latency);
             Assert.Equal("", main.Model.AllWorlds.Single(w => w.Id == 302).CountryCode);
             Assert.False(main.Model.AllWorlds.Single(w => w.Id == 303).IsDangerous);
+            Assert.False(main.Model.ConnectionHealthy); Assert.Contains("2 of 3", main.Model.ConnectionSummary);
             main.Model.ShowSettings = false; main.UpdateLayout(); Preview(main, "dashboard-failure-fallbacks.png");
             h.Catalogue.Error = new HttpRequestException("Offline again"); await h.Engine.RecheckAsync();
             await UntilAsync(() => main.Model.HasNotice);

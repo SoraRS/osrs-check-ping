@@ -176,6 +176,22 @@ public sealed class TopWorldsTests
     }
 
     [Fact]
+    public async Task SavedTenMinuteIntervalStartsWithOnlyAHiddenReviewAtFiveMinutes()
+    {
+        await using var h = new Harness();
+        Configure(h); h.Store.Settings = new AppSettings { RefreshIntervalSeconds = 600 };
+        await h.Engine.StartAsync();
+        var initialReading = h.World(301).LastChecked;
+        var request = await h.Clock.NextDelayAsync(); Assert.Equal(TimeSpan.FromMinutes(5), request.Delay);
+        h.Probe.Hosts.Clear(); h.Clock.Advance(request);
+        var next = await h.Clock.NextDelayAsync();
+        Assert.Equal(Enumerable.Range(326, 25), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(initialReading, h.World(301).LastChecked);
+        Assert.Equal(h.Clock.UtcNow, h.World(326).LastChecked);
+        Assert.Equal(TimeSpan.FromMinutes(5), next.Delay);
+    }
+
+    [Fact]
     public async Task ManualSelectionsAndFavoriteChangesCannotExceedCap()
     {
         await using var h = new Harness();

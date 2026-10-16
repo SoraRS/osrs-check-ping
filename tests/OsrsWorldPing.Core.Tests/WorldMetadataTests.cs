@@ -31,6 +31,8 @@ public sealed class WorldMetadataTests
     [Theory]
     [InlineData("Bounty Hunter", true)]
     [InlineData("High Risk", true)]
+    [InlineData("PvP", true)]
+    [InlineData("PvP World", true)]
     [InlineData("PvP Arena", false)]
     [InlineData("Leagues", false)]
     [InlineData("Unrecognized PvP event", false)]

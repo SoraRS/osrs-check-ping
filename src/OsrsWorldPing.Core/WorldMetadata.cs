@@ -29,7 +29,8 @@ public sealed record WorldMetadata(string CountryCode, string Region, string Act
             Mentions("Beta") || Mentions("Tournament") || Mentions("PvP Arena") || Mentions("Last Man Standing");
         string? danger = safeProfile ? null : Has(WorldFlags.HighRisk) || Mentions("High Risk") || Mentions("High-Risk")
             ? "High Risk: extra risk to your main-game character and items. Check the in-game world warning before joining."
-            : Has(WorldFlags.Pvp) ? "PvP world: other players can attack your main-game character outside normal Wilderness areas."
+            : Has(WorldFlags.Pvp) || activity.Equals("PvP", StringComparison.OrdinalIgnoreCase) || activity.Equals("PvP World", StringComparison.OrdinalIgnoreCase)
+                ? "PvP world: other players can attack your main-game character outside normal Wilderness areas."
             : Has(WorldFlags.Bounty) || Mentions("Bounty Hunter")
                 ? "Bounty Hunter: altered PvP rules can put your main-game character and items at risk." : null;
         var icon = danger is not null || Has(WorldFlags.Pvp | WorldFlags.Deadman) ? ActivityIcon.Swords
