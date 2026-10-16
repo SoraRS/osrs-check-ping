@@ -34,12 +34,12 @@ public static class Motion
         if ((bool)args.OldValue)
         {
             view.MouseEnter -= Hover; view.MouseLeave -= Hover;
-            if (view is TabItem tab) { tab.Selected -= TabSelectionScale; tab.Unselected -= TabSelectionScale; }
+            if (view is TabItem tab) { tab.RemoveHandler(Selector.SelectedEvent, new RoutedEventHandler(TabSelectionScale)); tab.RemoveHandler(Selector.UnselectedEvent, new RoutedEventHandler(TabSelectionScale)); }
         }
         if ((bool)args.NewValue)
         {
             view.MouseEnter += Hover; view.MouseLeave += Hover;
-            if (view is TabItem tab) { tab.Selected += TabSelectionScale; tab.Unselected += TabSelectionScale; }
+            if (view is TabItem tab) { tab.AddHandler(Selector.SelectedEvent, new RoutedEventHandler(TabSelectionScale)); tab.AddHandler(Selector.UnselectedEvent, new RoutedEventHandler(TabSelectionScale)); }
         }
     }
     private static void Hover(object sender, System.Windows.Input.MouseEventArgs args) => UpdateScale((FrameworkElement)sender);
