@@ -236,6 +236,10 @@ public sealed class DesktopTests
         {
             // Exercise the animated path even on runners configured for reduced motion. Restore the OS preference in finally.
             Assert.True(SystemParametersInfo(0x1043, 0, new IntPtr(1), 2));
+            bool nativeAnimations = false;
+            Assert.True(SystemParametersInfoBoolean(0x1042, 0, ref nativeAnimations, 0));
+            Assert.True(nativeAnimations, "Windows must report client-area animation enabled before WPF can exercise it.");
+            SendMessageTimeout(new IntPtr(0xffff), 0x001A, new IntPtr(0x1043), IntPtr.Zero, 2, 1000, out _);
             await UntilAsync(() => SystemParameters.ClientAreaAnimation);
             await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
             bool animate = Motion.CanAnimate(main); Assert.True(animate);
@@ -278,6 +282,7 @@ public sealed class DesktopTests
         {
             await CloseAsync(main); await h.DisposeAsync();
             Assert.True(SystemParametersInfo(0x1043, 0, new IntPtr(previousAnimations ? 1 : 0), 2));
+            SendMessageTimeout(new IntPtr(0xffff), 0x001A, new IntPtr(0x1043), IntPtr.Zero, 2, 1000, out _);
             await UntilAsync(() => SystemParameters.ClientAreaAnimation == previousAnimations);
         }
     });
@@ -430,6 +435,9 @@ public sealed class DesktopTests
     [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint count, Input[] input, int size);
     [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SystemParametersInfo(uint action, uint parameter, IntPtr value, uint flags);
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SystemParametersInfoBoolean(uint action, uint parameter, [MarshalAs(UnmanagedType.Bool)] ref bool value, uint flags);
+    [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW")] private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, uint flags, uint timeout, out UIntPtr result);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
