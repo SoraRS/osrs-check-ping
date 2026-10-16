@@ -230,11 +230,15 @@ public sealed class DesktopTests
     [Fact]
     public Task SettingsMotionReversesAndProgressNeverMovesTheFooter() => OnUiThreadAsync(async () =>
     {
+        bool previousAnimations = SystemParameters.ClientAreaAnimation;
         var h = Samples(); var main = new MainWindow(h.Engine); main.Show();
         try
         {
+            // Exercise the animated path even on runners configured for reduced motion. Restore the OS preference in finally.
+            Assert.True(SystemParametersInfo(0x1043, 0, new IntPtr(1), 2));
+            await UntilAsync(() => SystemParameters.ClientAreaAnimation);
             await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
-            bool animate = Motion.CanAnimate(main);
+            bool animate = Motion.CanAnimate(main); Assert.True(animate);
             main.Model.ShowSettings = true;
             if (animate)
             {
@@ -256,14 +260,26 @@ public sealed class DesktopTests
             Assert.False(main.IsNavigating); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
             var footer = (Grid)main.FindName("ReviewFooter"); main.UpdateLayout(); var before = footer.TranslatePoint(new Point(), main);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            h.Probe.Handler = async (_, token) => { entered.TrySetResult(); await release.Task.WaitAsync(token); return new ProbeResult(ProbeStatus.Success, 10); };
-            Task scan = h.Engine.RecheckAsync(); await entered.Task; await UntilAsync(() => main.Model.Snapshot.IsScanning);
+            h.Probe.Handler = async (host, token) =>
+            {
+                if (host == "world-301.runescape.com") { entered.TrySetResult(); await release.Task.WaitAsync(token); }
+                return new ProbeResult(ProbeStatus.Success, 10);
+            };
+            Task scan = h.Engine.RecheckAsync(); await entered.Task; await UntilAsync(() => main.Model.Snapshot.IsScanning && main.Model.Snapshot.ScanCompleted > 0);
             main.UpdateLayout(); Assert.Equal(before, footer.TranslatePoint(new Point(), main)); Assert.Equal(43, footer.ActualHeight);
-            Assert.Equal(1, ((ProgressBar)main.FindName("ReviewProgress")).Opacity); Preview(main, "settings-scan-progress.png");
+            var progress = (ProgressBar)main.FindName("ReviewProgress");
+            Assert.Equal(1, progress.Opacity); Assert.InRange(progress.Value, 1, 39);
+            Assert.All(Children<Border>(progress), border => Assert.Equal(new Thickness(0), border.BorderThickness));
+            Preview(main, "settings-scan-progress.png");
             release.TrySetResult(); await scan; await UntilAsync(() => !main.Model.Snapshot.IsScanning);
             Assert.Equal(before, footer.TranslatePoint(new Point(), main)); Assert.Equal(0, ((ProgressBar)main.FindName("ReviewProgress")).Opacity);
         }
-        finally { await CloseAsync(main); await h.DisposeAsync(); }
+        finally
+        {
+            await CloseAsync(main); await h.DisposeAsync();
+            Assert.True(SystemParametersInfo(0x1043, 0, new IntPtr(previousAnimations ? 1 : 0), 2));
+            await UntilAsync(() => SystemParameters.ClientAreaAnimation == previousAnimations);
+        }
     });
 
     [Fact]
@@ -412,6 +428,8 @@ public sealed class DesktopTests
     [StructLayout(LayoutKind.Explicit)] private struct InputUnion { [FieldOffset(0)] public MouseInput Mouse; }
     [StructLayout(LayoutKind.Sequential)] private struct MouseInput { public int X, Y; public uint Data, Flags, Time; public UIntPtr Extra; }
     [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint count, Input[] input, int size);
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SystemParametersInfo(uint action, uint parameter, IntPtr value, uint flags);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
