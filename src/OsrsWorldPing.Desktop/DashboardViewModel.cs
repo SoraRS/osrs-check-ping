@@ -53,6 +53,7 @@ public sealed class WorldCardModel : ObservableModel
         ? $"pack://application:,,,/OsrsWorldPing;component/Assets/Osrs/{name}.png" : null;
     public bool HasActivitySprite => HasActivity && ActivitySprite is not null;
     public bool HasActivityFallback => HasActivity && !HasActivitySprite;
+    public bool HasBestActivityFallback => !HasActivitySprite;
     public bool HasActivity => HasWorld && !string.IsNullOrWhiteSpace(_snapshot.World!.Activity) && _snapshot.World.Activity.Trim() != "-";
     public string ActivityLabel => HasActivity ? Activity : HasWorld ? "—" : "Unavailable";
     public string FavoriteHint => IsFavorite ? $"Remove world {Id} from favorites" : $"Always track world {Id} (up to five favorites)";

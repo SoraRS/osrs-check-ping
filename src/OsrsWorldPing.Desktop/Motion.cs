@@ -16,6 +16,8 @@ public static class Motion
     {
         if ((bool)args.NewValue) return;
         if (element is WorldCardSurface surface) surface.ResetMotion();
+        if (element is TextBlock text && text.ReadLocalValue(MessageProperty) != DependencyProperty.UnsetValue)
+        { text.BeginAnimation(UIElement.OpacityProperty, null); text.Text = GetMessage(text); text.Opacity = text.Text.Length > 0 ? 1 : 0; }
         if (element is MainWindow window) window.StopNavigationMotion();
         if (element is FrameworkElement { RenderTransform: ScaleTransform scale })
         {

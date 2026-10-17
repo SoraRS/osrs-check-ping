@@ -125,8 +125,8 @@ public sealed class DesktopTests
             Assert.Equal(3, main.ColumnCount); Assert.Equal(35, main.Model.Snapshot.LiveCount);
             var scroll = (ScrollViewer)main.FindName("PageScroll");
             var cards = (ItemsControl)main.FindName("MemberCards"); var favorites = (ItemsControl)main.FindName("FavoriteCards");
-            Assert.Equal(15, cards.Items.Count); Assert.Equal(15, ((ItemsControl)main.FindName("FreeCards")).Items.Count); Assert.Equal(5, favorites.Items.Count);
-            Assert.Equal(220, cards.ActualHeight); Assert.Equal(44, favorites.ActualHeight);
+            Assert.Equal(16, cards.Items.Count); Assert.Equal(14, ((ItemsControl)main.FindName("FreeCards")).Items.Count); Assert.Equal(5, favorites.Items.Count);
+            Assert.Equal(264, cards.ActualHeight); Assert.Equal(44, favorites.ActualHeight);
             Assert.True(scroll.ScrollableHeight < 1); Assert.True(scroll.ExtentHeight < 800);
             Assert.Empty(Children<ListBox>(main)); Assert.Empty(Children<DataGrid>(main));
             Assert.Null(((Grid)main.FindName("TitleBar")).Background);
@@ -488,9 +488,13 @@ public sealed class DesktopTests
             var handle = new WindowInteropHelper(main).Handle;
             Assert.Equal(0x00c00000, GetWindowLongPtr(handle, -16).ToInt64() & 0x00c00000);
             Assert.Equal(0, DwmGetWindowAttribute(handle, 9, out var frame, Marshal.SizeOf<FrameRect>()));
-            var dpi = VisualTreeHelper.GetDpi(main); var work = SystemParameters.WorkArea;
-            Assert.True(frame.Bottom <= (work.Bottom * dpi.DpiScaleY) + 1, $"Visible frame bottom {frame.Bottom} must not cover taskbar at {work.Bottom * dpi.DpiScaleY}.");
+            var monitor = new NativeMonitorInfo { Size = Marshal.SizeOf<NativeMonitorInfo>() };
+            Assert.True(ReadMonitorInfo(MonitorFromWindow(handle, 2), ref monitor));
             DesktopPreview("desktop-taskbar-maximized.png");
+            System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "ui-preview", "native-frame.txt"),
+                $"DWM: {frame.Left},{frame.Top},{frame.Right},{frame.Bottom}\nNative work: {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}\nWPF work: {SystemParameters.WorkArea}\nWPF bounds: {main.Left},{main.Top},{main.ActualWidth},{main.ActualHeight}\nDPI: {VisualTreeHelper.GetDpi(main).DpiScaleX}");
+            Assert.True(frame.Bottom <= monitor.Work.Bottom + 1 && frame.Top >= monitor.Work.Top - 1 && frame.Left >= monitor.Work.Left - 1 && frame.Right <= monitor.Work.Right + 1,
+                $"Visible frame {frame.Left},{frame.Top},{frame.Right},{frame.Bottom} must fit monitor work area {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}.");
             SystemCommands.MinimizeWindow(main);
             for (int i = 0; i < 8; i++) { await Task.Delay(40); DesktopPreview($"minimize-{i:00}.png"); }
             await UntilAsync(() => main.WindowState == WindowState.Minimized);
@@ -513,6 +517,10 @@ public sealed class DesktopTests
         bitmap.Save(System.IO.Path.Combine(directory, name), System.Drawing.Imaging.ImageFormat.Png);
     }
     [StructLayout(LayoutKind.Sequential)] private struct AnimationInfo { public uint Size; public int MinimizeAnimate; }
+    [StructLayout(LayoutKind.Sequential)] private struct NativeMonitorInfo { public int Size; public FrameRect Monitor, Work; public uint Flags; }
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ReadMonitorInfo(IntPtr monitor, ref NativeMonitorInfo info);
     [StructLayout(LayoutKind.Sequential)] private struct FrameRect { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SystemParametersAnimation(uint action, uint parameter, ref AnimationInfo value, uint flags);

@@ -55,7 +55,7 @@ jobs:
         if: always()
         with:
           name: Windows-interface-previews
-          path: tests/OsrsWorldPing.Desktop.Tests/bin/Release/net10.0-windows/ui-preview/*.png
+          path: tests/OsrsWorldPing.Desktop.Tests/bin/Release/net10.0-windows/ui-preview/*
           if-no-files-found: ignore
       - name: Publish Windows executable
         run: dotnet publish src/OsrsWorldPing.Desktop --configuration Release -p:PublishProfile=win-x64 --output artifacts/win-x64
@@ -87,7 +87,7 @@ jobs:
             if (-not $app.HasExited) { $app.Kill() }
           }
       - name: Investigate real world connection failures on Windows
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'validation/')
+        if: always() && github.event_name == 'pull_request' && startsWith(github.head_ref, 'validation/')
         continue-on-error: true
         run: dotnet run --project tools/OsrsWorldPing.Diagnostics --configuration Release -- artifacts/world-diagnostics.json
       - name: Save connection investigation

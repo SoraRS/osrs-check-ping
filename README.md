@@ -11,7 +11,7 @@ See your connection latency to Old School RuneScape worlds and keep your favorit
 
 **To download a testing build:** sign into GitHub, open [Build and test](https://github.com/SoraRS/osrs-world-ping/actions/workflows/build.yml), and choose a successful run for the branch or version you want. Scroll to **Artifacts**, download **OsrsWorldPing-win-x64**, and extract its ZIP. The interface previews artifact contains pictures, rather than the application. [GitHub's download guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) explains the sign-in and download steps.
 
-The interface described here is **version 1.3.0 or newer**; check **About**. Older runs contain older executables. Testing builds may be unsigned.
+The interface described here is **version 1.4.0 or newer**; check **About**. Older runs contain older executables. Testing builds may be unsigned.
 
 ## Updating an older copy
 
@@ -57,7 +57,7 @@ The bottom of settings shows when the catalogue was updated. The reserved progre
 
 ## Common problems
 
-**I still see the previous interface.** Fully exit older copies, download the executable artifact from the intended successful build, and launch the extracted file directly. Check **About** for version 1.3.0 or newer and update your shortcut.
+**I still see the previous interface.** Fully exit older copies, download the executable artifact from the intended successful build, and launch the extracted file directly. Check **About** for version 1.4.0 or newer and update your shortcut.
 
 **No ordinary worlds appear.** Open **Application** to check progress or a notice. The default 30 ms cutoff may be too low for your location. Raise it, select **Apply settings**, then **Check connection**. You can also favorite a world regardless of ping.
 

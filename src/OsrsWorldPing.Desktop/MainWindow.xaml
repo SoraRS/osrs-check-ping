@@ -100,7 +100,7 @@
                   <local:FlagGlyph Country="{Binding CountryCode}" Width="20" Height="13" Margin="0,0,8,0" ToolTip="{Binding Region}" />
                   <Grid Width="16" Height="16" Margin="0,0,5,0">
                     <Image Source="{Binding ActivitySprite}" RenderOptions.BitmapScalingMode="NearestNeighbor" Visibility="{Binding HasActivitySprite, Converter={StaticResource VisibleWhenTrue}}" />
-                    <local:ActivityGlyph Kind="{Binding ActivityIcon}" Visibility="{Binding HasActivityFallback, Converter={StaticResource VisibleWhenTrue}}" />
+                    <local:ActivityGlyph Kind="{Binding ActivityIcon}" Visibility="{Binding HasBestActivityFallback, Converter={StaticResource VisibleWhenTrue}}" />
                   </Grid>
                   <TextBlock Text="{Binding ActivityLabel}" FontSize="12" Foreground="{StaticResource ActivityInk}" MaxWidth="145" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                 </StackPanel>

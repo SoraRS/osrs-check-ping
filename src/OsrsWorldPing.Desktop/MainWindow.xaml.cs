@@ -321,6 +321,8 @@ public partial class MainWindow : Window
             var limits = Marshal.PtrToStructure<MinMaxInfo>(lParam);
             limits.MaxPosition = new NativePoint { X = monitor.Work.Left - monitor.Monitor.Left, Y = monitor.Work.Top - monitor.Monitor.Top };
             limits.MaxSize = new NativePoint { X = monitor.Work.Right - monitor.Work.Left, Y = monitor.Work.Bottom - monitor.Work.Top };
+            var scale = VisualTreeHelper.GetDpi(this);
+            limits.MinTrackSize = new NativePoint { X = (int)Math.Ceiling(MinWidth * scale.DpiScaleX), Y = (int)Math.Ceiling(MinHeight * scale.DpiScaleY) };
             Marshal.StructureToPtr(limits, lParam, false);
             handled = true; return IntPtr.Zero;
         }
