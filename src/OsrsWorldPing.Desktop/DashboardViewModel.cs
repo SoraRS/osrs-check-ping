@@ -179,7 +179,7 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
         string.Join("\n", Snapshot.Worlds.OrderBy(w => w.Id).Select(w => $"{w.Id} | {w.World?.Host ?? "unavailable"} | population {w.World?.Population} | {w.LatestResult?.Status} | {w.LatestResult?.Diagnostic?.Stage} | {w.LatestResult?.Diagnostic?.NativeCode} | {w.LatestResult?.Diagnostic?.Address} | {w.LastChecked:O}"));
     public string EmptyTitle => !Snapshot.SettingsLoaded || Snapshot.IsScanning ? "Finding your worlds" :
         Snapshot.CatalogueFetchedAt is null ? "World catalogue unavailable" : "No worlds under your cutoff";
-    public string EmptyDescription => Snapshot.IsScanning ? "Checking the world catalogue. Open settings for progress." :
+    public string EmptyDescription => !Snapshot.SettingsLoaded ? "Loading your preferences and preparing the world check." : Snapshot.IsScanning ? "Checking the world catalogue. Open settings for progress." :
         Snapshot.CatalogueFetchedAt is null ? "The world catalogue is unavailable. Open settings to check your connection and retry." :
         "Open settings to raise the latency cutoff, add a favorite, or check your connection again.";
     public string ScanStatus => Snapshot.IsScanning ? $"{(Snapshot.IsRecheckingHidden ? "Reviewing hidden worlds" : "Checking all worlds")} · {Snapshot.ScanCompleted} / {Snapshot.ScanTotal}" : "Ready";

@@ -418,6 +418,7 @@ public sealed class DesktopTests
         main.Show();
         try
         {
+            Assert.Equal("Finding your worlds", main.Model.EmptyTitle); Assert.Contains("Loading", main.Model.EmptyDescription);
             main.WindowState = WindowState.Minimized; sentinel.Show(); sentinel.Activate();
             var foreground = new WindowInteropHelper(sentinel).Handle;
             settings.SetResult(new AppSettings { Window = new(50, 60, 1100, 700, false) });
