@@ -410,6 +410,24 @@ public sealed class DesktopTests
     });
 
     [Fact]
+    public Task DelayedStartupPreferencesDoNotRestoreAMinimizedWindow() => OnUiThreadAsync(async () =>
+    {
+        await using var h = new Harness(); var settings = new TaskCompletionSource<AppSettings>(TaskCreationOptions.RunContinuationsAsynchronously);
+        h.Store.PendingSettings = settings.Task;
+        var main = new MainWindow(h.Engine); var sentinel = new Window { Title = "Startup foreground sentinel", Width = 300, Height = 160 };
+        main.Show();
+        try
+        {
+            main.WindowState = WindowState.Minimized; sentinel.Show(); sentinel.Activate();
+            var foreground = new WindowInteropHelper(sentinel).Handle;
+            settings.SetResult(new AppSettings { Window = new(50, 60, 1100, 700, false) });
+            await UntilAsync(() => main.Model.Snapshot.SettingsLoaded && !main.Model.Snapshot.IsScanning);
+            Assert.Equal(WindowState.Minimized, main.WindowState); Assert.Equal(foreground, GetForegroundWindow());
+        }
+        finally { sentinel.Close(); await CloseAsync(main); }
+    });
+
+    [Fact]
     public Task ExistingOffscreenBoundsAreClampedAndStartupStillMaximizes() => OnUiThreadAsync(async () =>
     {
         var h = new Harness(); h.Store.Settings = new AppSettings { Window = new(-50000, -50000, 1000, 600, false) };

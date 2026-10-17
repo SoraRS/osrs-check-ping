@@ -107,7 +107,8 @@ public partial class MainWindow : Window
             Left = area.Left / dpi.DpiScaleX + Math.Clamp((placement.X - area.Left) / dpi.DpiScaleX, 0, Math.Max(0, availableWidth - width));
             Top = area.Top / dpi.DpiScaleY + Math.Clamp((placement.Y - area.Top) / dpi.DpiScaleY, 0, Math.Max(0, availableHeight - height));
         }
-        WindowState = WindowState.Maximized;
+        // Startup is already maximized in XAML. A late settings read must preserve
+        // a user-initiated minimize/restore rather than changing window state.
     }
 
     private void UpdateLayoutDensity()
