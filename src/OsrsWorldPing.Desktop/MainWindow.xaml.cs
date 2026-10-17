@@ -58,6 +58,12 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs args)
     {
         SystemParameters.StaticPropertyChanged += MotionPreferenceChanged;
+        // HwndSource invokes the newest hook first. Install after WindowChrome's own hook.
+        if (_source is not null)
+        {
+            _source.RemoveHook(WindowHook); _source.AddHook(WindowHook);
+            SetWindowPos(_source.Handle, IntPtr.Zero, 0, 0, 0, 0, 0x0020 | 0x0001 | 0x0002 | 0x0004 | 0x0010);
+        }
         UpdateLayoutDensity();
         Model.Refresh();
         try { await _engine.StartAsync(); }
