@@ -333,10 +333,15 @@ public partial class MainWindow : Window
     {
         // Standard maximized windows retain an invisible resize border outside rcWork.
         // WindowChrome otherwise paints the client across that border and beneath the taskbar.
-        if (message == 0x0083 && wParam != IntPtr.Zero && IsZoomed(hwnd) && GetMonitorInfo(MonitorFromWindow(hwnd, 2), out var monitor))
+        if (message == 0x0083 && wParam != IntPtr.Zero && IsZoomed(hwnd))
         {
-            Marshal.StructureToPtr(monitor.Work, lParam, false);
-            handled = true; return IntPtr.Zero;
+            // The proposed bounds may already be on a different monitor from the current HWND.
+            var proposed = Marshal.PtrToStructure<NativeRect>(lParam);
+            if (GetMonitorInfo(MonitorFromRect(ref proposed, 2), out var monitor))
+            {
+                Marshal.StructureToPtr(monitor.Work, lParam, false);
+                handled = true; return IntPtr.Zero;
+            }
         }
         const int maxButton = 9;
         if (_ready && message == 0x0084 && WindowState != WindowState.Minimized && MaximizeButton.IsVisible)
@@ -356,7 +361,7 @@ public partial class MainWindow : Window
     [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public NativeRect Monitor, Work; public uint Flags; }
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsZoomed(IntPtr window);
-    [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref NativeRect rectangle, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ReadMonitorInfo(IntPtr monitor, ref MonitorInfo info);
     private static bool GetMonitorInfo(IntPtr handle, out MonitorInfo info)
