@@ -206,7 +206,8 @@ public partial class MainWindow : Window
         TrackingControlHost.Visibility = Visibility.Visible;
         TrackingControlHost.IsHitTestVisible = visible;
         var offset = (TranslateTransform)TrackingControlHost.RenderTransform;
-        double distance = Math.Max(80, PageScroll.ActualHeight / 2);
+        double baseY = TrackingControlHost.TranslatePoint(new Point(), PageScroll).Y - offset.Y;
+        double distance = Math.Max(80, PageScroll.ActualHeight - baseY + TrackingControlHost.ActualHeight);
         TrackingControlHost.BeginAnimation(OpacityProperty, new DoubleAnimation(visible ? 1 : 0, TimeSpan.FromMilliseconds(600)));
         offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(visible ? distance : offset.Y, visible ? 0 : distance, TimeSpan.FromMilliseconds(600))
         { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut } });
