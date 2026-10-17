@@ -61,7 +61,7 @@ The bottom of settings shows when the catalogue was updated. The reserved progre
 
 **No ordinary worlds appear.** Open **Application** to check progress or a notice. The default 30 ms cutoff may be too low for your location. Raise it, select **Apply settings**, then **Check connection**. You can also favorite a world regardless of ping.
 
-**Some worlds show No reply or Unreachable.** Brief disconnections and missed ICMP replies are expected on some connections. Open **Application → Diagnostics** for the failure breakdown and **Copy diagnostics** if reporting a problem. A timeout does not prove the world is offline or that ICMP is blocked.
+**Some worlds show No reply or Unreachable.** Brief disconnections and missed ICMP replies are expected on some connections. Open **Application → Diagnostics** for the failure breakdown and **Copy diagnostics** if reporting a problem. [Connection result meanings](docs/CONNECTIONS.md) explain the different conditions. A timeout does not prove the world is offline or that ICMP is blocked.
 
 **Everything times out.** Check your connection, VPN, firewall, and network rules. Some networks block ICMP even when the game works. Try another network before assuming every world is offline; administrator access is not normally required.
 

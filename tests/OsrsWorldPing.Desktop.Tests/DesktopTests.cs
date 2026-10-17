@@ -79,16 +79,20 @@ public sealed class DesktopTests
         finally { element.Click -= clicked; }
     }
 
-    private static Harness Samples()
+    private static Harness Samples(int count = 40)
     {
         var h = new Harness();
-        h.Store.Settings = new AppSettings { LatencyCutoffMs = 60, FavoriteWorldIds = [301, 302, 303, 304, 305] };
+        h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302, 303, 304, 305] };
         string[] activities = ["2200 skill total", "Wintertodt", "Tempoross", "Forestry", "Guardians of the Rift", "Trading", "Agility Training", "Blast Furnace", "Fishing Trawler", "PvP", "A long activity description that must remain readable", "Nex FFA", "Nightmare of Ashihama", "Mastering Mixology", "Zalcano", "Volcanic Mine", "Tombs of Amascut", "House Party, Gilded Altar", "Sorceress's Garden", "Salvaging"];
-        h.Catalogue.Worlds = Enumerable.Range(301, 40).Select(id => new WorldInfo(id,
+        h.Catalogue.Worlds = Enumerable.Range(301, count).Select(id => new WorldInfo(id,
             id == 301 ? (uint)(WorldFlags.Members | WorldFlags.SkillTotal) : id == 310 ? (uint)(WorldFlags.Members | WorldFlags.Pvp) : (uint)(id % 2),
             $"world-{id}.runescape.com", id == 337 ? "-" : activities[(id - 301) % activities.Length],
             (id % 4) switch { 0 => 0, 1 => 1, 2 => 3, _ => 7 }, 100)).ToArray();
-        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, int.Parse(host.Split('.')[0].AsSpan(6)) - 300));
+        h.Probe.Handler = (host, _) =>
+        {
+            int id = int.Parse(host.Split('.')[0].AsSpan(6));
+            return Task.FromResult(new ProbeResult(ProbeStatus.Success, id <= 305 ? id - 300 : id - 305));
+        };
         return h;
     }
     private static async Task CloseAsync(MainWindow window) { window.RequestExit(); await UntilAsync(() => !Application.Current.Windows.Cast<Window>().Contains(window)); }
@@ -114,7 +118,7 @@ public sealed class DesktopTests
     [Fact]
     public Task ThirtyFiveCardsFitInSeparateNumericColumnsAndSettingsKeepTheGrid() => OnUiThreadAsync(async () =>
     {
-        var h = Samples(); var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
+        var h = Samples(80); var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
         try
         {
             await UntilAsync(() => main.Model.Tracked.Count == 30);
@@ -178,8 +182,11 @@ public sealed class DesktopTests
             }
             tabs.SelectedIndex = 0; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
             var showAll = (ToggleButton)main.FindName("ShowAllButton"); int probes = h.Probe.Hosts.Count;
-            await ClickAsync(showAll); Assert.True(main.Model.ShowAllWorlds);
-            Assert.Equal(probes, h.Probe.Hosts.Count); Assert.Equal(Enumerable.Range(336, 5), main.Model.Hidden.Select(w => w.Id));
+            var beforeX = cards.TranslatePoint(new Point(), main).X; double beforeWidth = favorites.ActualWidth;
+            await ClickAsync(showAll); Assert.True(main.Model.ShowAllWorlds); main.UpdateLayout();
+            Assert.True(scroll.ScrollableHeight > 0, "Revealing the catalogue must exercise real overflow.");
+            Assert.Equal(beforeX, cards.TranslatePoint(new Point(), main).X); Assert.Equal(beforeWidth, favorites.ActualWidth);
+            Assert.Equal(probes, h.Probe.Hosts.Count); Assert.Equal(Enumerable.Range(336, 45), main.Model.Hidden.Select(w => w.Id));
             Assert.True(((ItemsControl)main.FindName("HiddenCards")).IsVisible);
             Assert.Equal(ScrollBarVisibility.Hidden, scroll.VerticalScrollBarVisibility);
             Assert.DoesNotContain(Children<TextBlock>((ItemsControl)main.FindName("HiddenCards")), t => t.Text == "Scan result");
@@ -197,7 +204,10 @@ public sealed class DesktopTests
             {
                 await ResizeAsync(main, width, height); scroll.ScrollToTop(); main.UpdateLayout();
                 Preview(main, $"dashboard-{width}-{scale}.png", scale);
-                main.Model.ShowSettings = true;
+                main.Model.SelectedSettingsTab = 0; main.UpdateLayout();
+                double dashboardY = cards.TranslatePoint(new Point(), main).Y;
+                main.Model.ShowSettings = true; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
+                Assert.Equal(dashboardY, cards.TranslatePoint(new Point(), main).Y);
                 for (int tab = 0; tab < 3; tab++)
                 {
                     tabs.SelectedIndex = tab; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -280,7 +290,7 @@ public sealed class DesktopTests
             Assert.True(main.Model.ShowSettings); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
             main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.Loaded);
             await Task.Delay(120);
-            var reveal = (Grid)main.FindName("SettingsReveal"); var content = (ContentPresenter)main.FindName("SettingsContent");
+            var reveal = (Grid)main.FindName("SettingsReveal"); Assert.True(reveal.ClipToBounds); var content = (ContentPresenter)main.FindName("SettingsContent");
             Assert.True(main.IsNavigating); Assert.InRange(reveal.ActualHeight, 1, content.DesiredSize.Height - 1);
             Assert.True(((TranslateTransform)content.RenderTransform).Y < 0);
             var tracking = (Border)main.FindName("TrackingControlHost"); Assert.InRange(tracking.Opacity, .01, .99);
@@ -439,7 +449,7 @@ public sealed class DesktopTests
             Assert.Equal("No reply", main.Model.Favorites.Single(w => w.Id == 301).Latency);
             Assert.Equal("", main.Model.AllWorlds.Single(w => w.Id == 302).CountryCode);
             Assert.False(main.Model.AllWorlds.Single(w => w.Id == 303).IsDangerous);
-            Assert.False(main.Model.ConnectionHealthy); Assert.Contains("2 of 3", main.Model.ConnectionSummary);
+            Assert.False(main.Model.ConnectionHealthy); Assert.True(main.Model.ConnectionPartial); Assert.Contains("2 of 3", main.Model.ConnectionSummary);
             main.Model.ShowSettings = false; main.UpdateLayout(); Preview(main, "dashboard-failure-fallbacks.png");
             h.Catalogue.Error = new HttpRequestException("Offline again"); await h.Engine.RecheckAsync();
             await UntilAsync(() => main.Model.HasNotice);

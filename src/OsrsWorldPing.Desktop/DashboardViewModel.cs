@@ -188,6 +188,7 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public string WorldsUpdatedAt => Snapshot.CatalogueFetchedAt is { } fetched ? $"Worlds updated at {fetched.ToLocalTime():g}" : "Worlds have not been downloaded";
     public bool HasConnectionFeedback => Snapshot.IsScanning || _showConnectionFeedback;
     public string ConnectionSummary => Snapshot.IsScanning ? ScanStatus : _showConnectionFeedback ? _connectionSummary : "";
+    public bool ConnectionPartial => !Snapshot.IsScanning && Snapshot.Worlds.Any(w => w.LatestResult?.Status == ProbeStatus.Success) && !_connectionHealthy;
     public bool ConnectionHealthy => !Snapshot.IsScanning && _connectionHealthy;
     public string Version => $"Version {typeof(DashboardViewModel).Assembly.GetName().Version?.ToString(3)} · Windows x64";
     public ICommand OpenSettings { get; }
@@ -260,11 +261,11 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
         int responded = worlds.Count(w => w.LatestResult?.Status == ProbeStatus.Success);
         _connectionHealthy = worlds.Length > 0 && responded == worlds.Length;
         _connectionSummary = worlds.Length == 0 ? "World catalogue unavailable. Check your connection and retry." :
-            _connectionHealthy ? $"All {worlds.Length} worlds replied." : $"{responded} of {worlds.Length} worlds replied. No reply can be temporary or reflect ICMP filtering; it does not establish a world outage.";
+            _connectionHealthy ? $"All {worlds.Length} worlds replied." : $"Check complete · {responded} of {worlds.Length} worlds replied. See Diagnostics for other results.";
         _showConnectionFeedback = true;
         _connectionTimer?.Cancel(); _connectionTimer?.Dispose(); _connectionTimer = new CancellationTokenSource();
         _ = ExpireConnectionFeedbackAsync(_connectionTimer.Token);
-        Notify(nameof(ConnectionSummary)); Notify(nameof(ConnectionHealthy)); Notify(nameof(HasConnectionFeedback));
+        Notify(nameof(ConnectionSummary)); Notify(nameof(ConnectionHealthy)); Notify(nameof(ConnectionPartial)); Notify(nameof(HasConnectionFeedback));
     }
     private async Task ResetDefaultsAsync()
     {
