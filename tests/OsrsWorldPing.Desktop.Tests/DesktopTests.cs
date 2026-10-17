@@ -278,13 +278,29 @@ public sealed class DesktopTests
             main.Model.ShowSettings = true; // Reverse an in-flight transition without leaving stale clocks or particles.
             await UntilAsync(() => !main.IsNavigating);
             Assert.True(main.Model.ShowSettings); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
-            main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.Loaded);
+            await Task.Delay(120);
+            var reveal = (Grid)main.FindName("SettingsReveal"); var content = (ContentPresenter)main.FindName("SettingsContent");
+            Assert.True(main.IsNavigating); Assert.InRange(reveal.ActualHeight, 1, content.DesiredSize.Height - 1);
+            Assert.True(((TranslateTransform)content.RenderTransform).Y < 0);
+            var tracking = (Border)main.FindName("TrackingControlHost"); Assert.InRange(tracking.Opacity, .01, .99);
+            Preview(main, "page-transition-application.png");
             await UntilAsync(() => !main.IsNavigating);
-            Assert.True(((Grid)main.FindName("SettingsReveal")).ActualHeight > 250);
+            Assert.True(reveal.ActualHeight > 250);
+            double applicationHeight = reveal.ActualHeight;
+            main.Model.SelectedSettingsTab = 2; await Dispatcher.Yield(DispatcherPriority.Loaded); await Task.Delay(120);
+            var outgoing = (ContentPresenter)main.FindName("SettingsOutgoing");
+            Assert.True(((TranslateTransform)outgoing.RenderTransform).Y > 0);
+            Assert.True(((TranslateTransform)content.RenderTransform).Y < 0);
+            Assert.InRange(reveal.ActualHeight, Math.Min(applicationHeight, content.DesiredSize.Height) + 1, Math.Max(applicationHeight, content.DesiredSize.Height) - 1);
+            Preview(main, "page-transition-about.png");
+            await UntilAsync(() => !main.IsNavigating);
+            main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); await UntilAsync(() => !main.IsNavigating);
             main.Model.ShowSettings = false; main.Model.ShowSettings = true;
             Motion.SetEnabled(main, false); // Also stop a transition already in flight.
             main.Model.ShowSettings = false; main.Model.ShowSettings = true;
             Assert.False(main.IsNavigating); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
+            Assert.False(((TranslateTransform)((TabControl)main.FindName("SettingsTabs")).RenderTransform).HasAnimatedProperties);
             var footer = (Grid)main.FindName("ReviewFooter"); main.UpdateLayout(); var before = footer.TranslatePoint(new Point(), main);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             h.Probe.Handler = async (host, token) =>
@@ -490,11 +506,12 @@ public sealed class DesktopTests
             Assert.Equal(0, DwmGetWindowAttribute(handle, 9, out var frame, Marshal.SizeOf<FrameRect>()));
             var monitor = new NativeMonitorInfo { Size = Marshal.SizeOf<NativeMonitorInfo>() };
             Assert.True(ReadMonitorInfo(MonitorFromWindow(handle, 2), ref monitor));
-            DesktopPreview("desktop-taskbar-maximized.png");
+            Assert.True(GetClientRect(handle, out var client)); var origin = new ClientPoint(); Assert.True(ClientToScreen(handle, ref origin));
+            await Task.Delay(80); DwmFlush(); DesktopPreview("desktop-taskbar-maximized.png");
             System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "ui-preview", "native-frame.txt"),
-                $"DWM: {frame.Left},{frame.Top},{frame.Right},{frame.Bottom}\nNative work: {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}\nWPF work: {SystemParameters.WorkArea}\nWPF bounds: {main.Left},{main.Top},{main.ActualWidth},{main.ActualHeight}\nDPI: {VisualTreeHelper.GetDpi(main).DpiScaleX}");
-            Assert.True(frame.Bottom <= monitor.Work.Bottom + 1 && frame.Top >= monitor.Work.Top - 1 && frame.Left >= monitor.Work.Left - 1 && frame.Right <= monitor.Work.Right + 1,
-                $"Visible frame {frame.Left},{frame.Top},{frame.Right},{frame.Bottom} must fit monitor work area {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}.");
+                $"DWM outer (includes invisible resize border): {frame.Left},{frame.Top},{frame.Right},{frame.Bottom}\nClient: {origin.X},{origin.Y},{origin.X + client.Right},{origin.Y + client.Bottom}\nNative work: {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}\nWPF work: {SystemParameters.WorkArea}\nWPF bounds: {main.Left},{main.Top},{main.ActualWidth},{main.ActualHeight}\nDPI: {VisualTreeHelper.GetDpi(main).DpiScaleX}");
+            Assert.True(origin.X >= monitor.Work.Left && origin.Y >= monitor.Work.Top && origin.X + client.Right <= monitor.Work.Right && origin.Y + client.Bottom <= monitor.Work.Bottom,
+                $"Painted client {origin.X},{origin.Y},{origin.X + client.Right},{origin.Y + client.Bottom} must fit monitor work area {monitor.Work.Left},{monitor.Work.Top},{monitor.Work.Right},{monitor.Work.Bottom}.");
             SystemCommands.MinimizeWindow(main);
             for (int i = 0; i < 8; i++) { await Task.Delay(40); DesktopPreview($"minimize-{i:00}.png"); }
             await UntilAsync(() => main.WindowState == WindowState.Minimized);
@@ -517,6 +534,10 @@ public sealed class DesktopTests
         bitmap.Save(System.IO.Path.Combine(directory, name), System.Drawing.Imaging.ImageFormat.Png);
     }
     [StructLayout(LayoutKind.Sequential)] private struct AnimationInfo { public uint Size; public int MinimizeAnimate; }
+    [StructLayout(LayoutKind.Sequential)] private struct ClientPoint { public int X, Y; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetClientRect(IntPtr window, out FrameRect rect);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ClientToScreen(IntPtr window, ref ClientPoint point);
+    [DllImport("dwmapi.dll")] private static extern int DwmFlush();
     [StructLayout(LayoutKind.Sequential)] private struct NativeMonitorInfo { public int Size; public FrameRect Monitor, Work; public uint Flags; }
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]

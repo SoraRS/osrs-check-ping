@@ -149,6 +149,8 @@ public partial class MainWindow : Window
         SettingsReveal.BeginAnimation(HeightProperty, null); SettingsReveal.Height = initialHeight;
         object? target = opening ? ((TabItem)SettingsTabs.SelectedItem).Content : null;
         object? previous = SettingsContent.Content;
+        double previousOpacity = SettingsContent.Opacity;
+        double previousOffset = ((TranslateTransform)SettingsContent.RenderTransform).Y;
         bool changing = !ReferenceEquals(previous, target);
         if (changing)
         {
@@ -173,9 +175,12 @@ public partial class MainWindow : Window
         double distance = Math.Max(120, PageScroll.ActualHeight);
         if (changing)
         {
-            SettingsOutgoing.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(240)));
+            SettingsOutgoing.BeginAnimation(OpacityProperty, new DoubleAnimation(previousOpacity, 0, TimeSpan.FromMilliseconds(240)));
             ((TranslateTransform)SettingsOutgoing.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
-                new DoubleAnimation(0, distance, TimeSpan.FromMilliseconds(240)) { EasingFunction = easing });
+                new DoubleAnimation(previousOffset, distance, TimeSpan.FromMilliseconds(240)) { EasingFunction = easing });
+            SettingsContent.BeginAnimation(OpacityProperty, null); SettingsContent.Opacity = 0;
+            var incomingOffset = (TranslateTransform)SettingsContent.RenderTransform;
+            incomingOffset.BeginAnimation(TranslateTransform.YProperty, null); incomingOffset.Y = -distance;
             SettingsContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(420)) { BeginTime = TimeSpan.FromMilliseconds(180) });
             ((TranslateTransform)SettingsContent.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
                 new DoubleAnimation(-distance, 0, TimeSpan.FromMilliseconds(420)) { BeginTime = TimeSpan.FromMilliseconds(180), EasingFunction = easing });
@@ -212,6 +217,8 @@ public partial class MainWindow : Window
         SettingsReveal.Height = opening ? _contentTargetHeight : 0;
         SettingsContent.BeginAnimation(OpacityProperty, null); SettingsContent.Opacity = opening ? 1 : 0;
         SettingsTabs.BeginAnimation(OpacityProperty, null); SettingsTabs.Opacity = opening ? 1 : 0;
+        var headerOffset = (TranslateTransform)SettingsTabs.RenderTransform;
+        headerOffset.BeginAnimation(TranslateTransform.YProperty, null); headerOffset.Y = 0;
         foreach (var presenter in new[] { SettingsContent, SettingsOutgoing })
         {
             var offset = (TranslateTransform)presenter.RenderTransform;
@@ -316,14 +323,11 @@ public partial class MainWindow : Window
     }
     private IntPtr WindowHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (message == 0x0024 && GetMonitorInfo(MonitorFromWindow(hwnd, 2), out var monitor))
+        // Standard maximized windows retain an invisible resize border outside rcWork.
+        // WindowChrome otherwise paints the client across that border and beneath the taskbar.
+        if (message == 0x0083 && wParam != IntPtr.Zero && IsZoomed(hwnd) && GetMonitorInfo(MonitorFromWindow(hwnd, 2), out var monitor))
         {
-            var limits = Marshal.PtrToStructure<MinMaxInfo>(lParam);
-            limits.MaxPosition = new NativePoint { X = monitor.Work.Left - monitor.Monitor.Left, Y = monitor.Work.Top - monitor.Monitor.Top };
-            limits.MaxSize = new NativePoint { X = monitor.Work.Right - monitor.Work.Left, Y = monitor.Work.Bottom - monitor.Work.Top };
-            var scale = VisualTreeHelper.GetDpi(this);
-            limits.MinTrackSize = new NativePoint { X = (int)Math.Ceiling(MinWidth * scale.DpiScaleX), Y = (int)Math.Ceiling(MinHeight * scale.DpiScaleY) };
-            Marshal.StructureToPtr(limits, lParam, false);
+            Marshal.StructureToPtr(monitor.Work, lParam, false);
             handled = true; return IntPtr.Zero;
         }
         const int maxButton = 9;
@@ -341,10 +345,9 @@ public partial class MainWindow : Window
         { handled = true; if (message == 0x00A2) ToggleMaximize(); }
         return IntPtr.Zero;
     }
-    [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
-    [StructLayout(LayoutKind.Sequential)] private struct MinMaxInfo { public NativePoint Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize; }
     [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public NativeRect Monitor, Work; public uint Flags; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsZoomed(IntPtr window);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ReadMonitorInfo(IntPtr monitor, ref MonitorInfo info);
