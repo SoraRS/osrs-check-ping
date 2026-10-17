@@ -34,3 +34,12 @@ Skill sprites were obtained from RuneLite's published resources at revision `e98
 | `nightmare.png` | [Source](https://oldschool.runescape.wiki/images/The_Nightmare_icon.png) |
 
 RuneLite distribution license: [BSD 2-Clause notice](LICENSE-RuneLite.txt). Game-art ownership remains with Jagex.
+
+## Additional world/activity sprites
+Retrieved from the OSRS Wiki file pages; game artwork © Jagex Ltd. Original PNGs are bundled unchanged.
+- `pvp.png`: [PvP world icon.png](https://oldschool.runescape.wiki/w/File:PvP_world_icon.png), 16×16.
+- `deadman.png`: [Deadman world icon.png](https://oldschool.runescape.wiki/w/File:Deadman_world_icon.png), 16×16.
+- `league.png`: [League world icon.png](https://oldschool.runescape.wiki/w/File:League_world_icon.png), 16×16.
+- `speedrunning.png`: [Quest Speedrunning world icon.png](https://oldschool.runescape.wiki/w/File:Quest_Speedrunning_world_icon.png), 16×16.
+- `grouping.png`: [Grouping icon.png](https://oldschool.runescape.wiki/w/File:Grouping_icon.png), 30×31.
+- `quest.png`: [Quest point icon.png](https://oldschool.runescape.wiki/w/File:Quest_point_icon.png), 21×21.

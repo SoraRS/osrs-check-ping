@@ -8,9 +8,11 @@ public sealed record WorldInfo(int Id, uint Flags, string Host, string Activity,
     [JsonIgnore] public string Region => WorldMetadata.RegionFor(Location).Region;
 }
 
-public enum ProbeStatus { Success, TimedOut, Unreachable, DnsError, Error }
+public enum ProbeStatus { Success, TimedOut, Unreachable, DnsError, Error, PermissionDenied, Unsupported, NetworkError }
 
-public sealed record ProbeResult(ProbeStatus Status, long? RoundTripMilliseconds = null)
+public sealed record ProbeDiagnostic(string Stage, string? Address, string NativeCode);
+
+public sealed record ProbeResult(ProbeStatus Status, long? RoundTripMilliseconds = null, ProbeDiagnostic? Diagnostic = null)
 {
     public bool IsGood(int cutoff) => Status == ProbeStatus.Success && RoundTripMilliseconds is >= 0 &&
         RoundTripMilliseconds <= cutoff;

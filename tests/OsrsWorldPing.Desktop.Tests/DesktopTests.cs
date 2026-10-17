@@ -82,11 +82,11 @@ public sealed class DesktopTests
     private static Harness Samples()
     {
         var h = new Harness();
-        h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302, 303, 304, 305] };
+        h.Store.Settings = new AppSettings { LatencyCutoffMs = 60, FavoriteWorldIds = [301, 302, 303, 304, 305] };
         string[] activities = ["2200 skill total", "Wintertodt", "Tempoross", "Forestry", "Guardians of the Rift", "Trading", "Agility Training", "Blast Furnace", "Fishing Trawler", "PvP", "A long activity description that must remain readable", "Nex FFA", "Nightmare of Ashihama", "Mastering Mixology", "Zalcano", "Volcanic Mine", "Tombs of Amascut", "House Party, Gilded Altar", "Sorceress's Garden", "Salvaging"];
         h.Catalogue.Worlds = Enumerable.Range(301, 40).Select(id => new WorldInfo(id,
             id == 301 ? (uint)(WorldFlags.Members | WorldFlags.SkillTotal) : id == 310 ? (uint)(WorldFlags.Members | WorldFlags.Pvp) : (uint)(id % 2),
-            $"world-{id}.runescape.com", activities[(id - 301) % activities.Length],
+            $"world-{id}.runescape.com", id == 337 ? "-" : activities[(id - 301) % activities.Length],
             (id % 4) switch { 0 => 0, 1 => 1, 2 => 3, _ => 7 }, 100)).ToArray();
         h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, int.Parse(host.Split('.')[0].AsSpan(6)) - 300));
         return h;
@@ -112,37 +112,48 @@ public sealed class DesktopTests
     }
 
     [Fact]
-    public Task ThirtyCardsFitAndEverySettingsTabKeepsTheCenteredLiveGrid() => OnUiThreadAsync(async () =>
+    public Task ThirtyFiveCardsFitInSeparateNumericColumnsAndSettingsKeepTheGrid() => OnUiThreadAsync(async () =>
     {
         var h = Samples(); var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
         try
         {
-            await UntilAsync(() => main.Model.Tracked.Count == 25);
+            await UntilAsync(() => main.Model.Tracked.Count == 30);
             Assert.Equal(WindowState.Maximized, main.WindowState);
             Assert.Equal(2, PathGeometry.CreateFromGeometry(((System.Windows.Shapes.Path)main.FindName("MaximizeIcon")).Data).Figures.Count);
             await ResizeAsync(main, 1920, 1040);
             Assert.Single(PathGeometry.CreateFromGeometry(((System.Windows.Shapes.Path)main.FindName("MaximizeIcon")).Data).Figures);
-            Assert.Equal(5, main.ColumnCount); Assert.Equal(30, main.Model.Snapshot.LiveCount);
+            Assert.Equal(3, main.ColumnCount); Assert.Equal(35, main.Model.Snapshot.LiveCount);
             var scroll = (ScrollViewer)main.FindName("PageScroll");
-            var cards = (ItemsControl)main.FindName("WorldCards"); var favorites = (ItemsControl)main.FindName("FavoriteCards");
-            Assert.Equal(25, cards.Items.Count); Assert.Equal(5, favorites.Items.Count);
-            Assert.Equal(270, cards.ActualHeight); Assert.Equal(54, favorites.ActualHeight);
-            Assert.True(scroll.ScrollableHeight < 1); Assert.True(scroll.ExtentHeight < 400);
+            var cards = (ItemsControl)main.FindName("MemberCards"); var favorites = (ItemsControl)main.FindName("FavoriteCards");
+            Assert.Equal(15, cards.Items.Count); Assert.Equal(15, ((ItemsControl)main.FindName("FreeCards")).Items.Count); Assert.Equal(5, favorites.Items.Count);
+            Assert.Equal(220, cards.ActualHeight); Assert.Equal(44, favorites.ActualHeight);
+            Assert.True(scroll.ScrollableHeight < 1); Assert.True(scroll.ExtentHeight < 800);
             Assert.Empty(Children<ListBox>(main)); Assert.Empty(Children<DataGrid>(main));
             Assert.Null(((Grid)main.FindName("TitleBar")).Background);
             WorldTile Tile(int id) => Children<WorldTile>(main).Single(t => t.IsVisible && t.DataContext is WorldCardModel w && w.Id == id);
             var tile = Tile(306); var surface = (WorldCardSurface)tile.FindName("Surface");
-            Assert.Equal(new Thickness(0), surface.BorderThickness); Assert.Equal(54, tile.ActualHeight);
+            Assert.Equal(new Thickness(0), surface.BorderThickness); Assert.Equal(44, tile.ActualHeight);
             var number = (TextBlock)tile.FindName("WorldNumber"); var ping = (TextBlock)tile.FindName("LatencyValue"); var flag = (FlagGlyph)tile.FindName("RegionFlag");
-            var heart = (ToggleButton)tile.FindName("FavoriteToggle"); var star = (System.Windows.Shapes.Path)tile.FindName("MembershipStar");
-            Assert.True(heart.TranslatePoint(new Point(), tile).X < star.TranslatePoint(new Point(), tile).X);
-            Assert.True(star.TranslatePoint(new Point(), tile).X < number.TranslatePoint(new Point(), tile).X);
-            Assert.True(ping.TranslatePoint(new Point(), tile).X < flag.TranslatePoint(new Point(), tile).X);
+            var heart = (ToggleButton)tile.FindName("FavoriteToggle");
+            Assert.Null(tile.FindName("MembershipStar")); Assert.False(flag.IsVisible);
+            Assert.True(heart.TranslatePoint(new Point(), tile).X < number.TranslatePoint(new Point(), tile).X);
             Assert.InRange(ping.TranslatePoint(new Point(), tile).X - number.TranslatePoint(new Point(), tile).X - number.ActualWidth, 0, 12);
-            Assert.Equal(Color.FromRgb(196, 204, 214), ((SolidColorBrush)star.Fill).Color);
-            Assert.Equal(((SolidColorBrush)star.Fill).Color, ((SolidColorBrush)number.Foreground).Color);
-            Assert.Equal(Color.FromRgb(216, 181, 117), ((SolidColorBrush)((System.Windows.Shapes.Path)Tile(301).FindName("MembershipStar")).Fill).Color);
+            Assert.Equal(Color.FromRgb(157, 165, 175), ((SolidColorBrush)number.Foreground).Color);
+            Assert.Equal(Color.FromRgb(224, 188, 85), ((SolidColorBrush)((TextBlock)Tile(301).FindName("WorldNumber")).Foreground).Color);
             Assert.Equal(Color.FromRgb(255, 150, 144), ((SolidColorBrush)((TextBlock)Tile(310).FindName("WorldNumber")).Foreground).Color);
+            Assert.Equal(301, main.Model.BestWorld!.Id);
+            foreach (var panelName in new[] { "MemberCards", "FreeCards" })
+            {
+                var section = (ItemsControl)main.FindName(panelName);
+                var tiles = Children<WorldTile>(section).OrderBy(t => ((WorldCardModel)t.DataContext).Id).ToArray();
+                for (int i = 0; i < tiles.Length; i++)
+                {
+                    var (row, column) = WorldColumnLayout.Position(i, tiles.Length, 3);
+                    var point = tiles[i].TranslatePoint(new Point(), section);
+                    Assert.InRange(Math.Abs(point.Y - row * 44), 0, 1);
+                    Assert.InRange(Math.Abs(point.X - column * section.ActualWidth / 3), 0, 1);
+                }
+            }
             Preview(main, "dashboard-1080p.png");
             var tabs = (TabControl)main.FindName("SettingsTabs");
             main.Model.OpenSettings.Execute(null); await UntilAsync(() => !main.IsNavigating);
@@ -154,9 +165,9 @@ public sealed class DesktopTests
                 tabs.SelectedIndex = tab; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
                 Assert.True(header.IsVisible); Assert.True(cards.IsVisible); Assert.True(favorites.IsVisible);
                 var selectedLabel = Children<TextBlock>((TabItem)tabs.Items[tab]).Single();
-                Assert.Equal(Color.FromRgb(216, 181, 117), ((SolidColorBrush)selectedLabel.Foreground).Color);
+                Assert.Equal(Color.FromRgb(224, 188, 85), ((SolidColorBrush)selectedLabel.Foreground).Color);
                 Assert.True(cards.TranslatePoint(new Point(), main).Y >= ((Grid)main.FindName("SettingsReveal")).TranslatePoint(new Point(), main).Y + ((Grid)main.FindName("SettingsReveal")).ActualHeight);
-                Assert.Equal(30, main.Model.Snapshot.LiveCount);
+                Assert.Equal(35, main.Model.Snapshot.LiveCount);
                 if (tab > 0)
                 {
                     var sheet = (Border)main.FindName(tab == 1 ? "ApplicationSheet" : "AboutSheet");
@@ -168,8 +179,13 @@ public sealed class DesktopTests
             tabs.SelectedIndex = 0; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
             var showAll = (ToggleButton)main.FindName("ShowAllButton"); int probes = h.Probe.Hosts.Count;
             await ClickAsync(showAll); Assert.True(main.Model.ShowAllWorlds);
-            Assert.Equal(probes, h.Probe.Hosts.Count); Assert.Equal(Enumerable.Range(331, 10), main.Model.Hidden.Select(w => w.Id));
+            Assert.Equal(probes, h.Probe.Hosts.Count); Assert.Equal(Enumerable.Range(336, 5), main.Model.Hidden.Select(w => w.Id));
             Assert.True(((ItemsControl)main.FindName("HiddenCards")).IsVisible);
+            Assert.Equal(ScrollBarVisibility.Hidden, scroll.VerticalScrollBarVisibility);
+            Assert.DoesNotContain(Children<TextBlock>((ItemsControl)main.FindName("HiddenCards")), t => t.Text == "Scan result");
+            Assert.True(((FlagGlyph)Tile(337).FindName("RegionFlag")).IsVisible);
+            Assert.Equal("—", ((TextBlock)Tile(337).FindName("ActivityText")).Text);
+            Assert.Contains("Scan result", main.Model.Hidden.Single(w => w.Id == 337).ReadingDetails);
             Assert.Equal("Hide all", main.Model.ShowAllLabel); Preview(main, "tracking-expanded.png");
             await ClickAsync(showAll); Assert.False(main.Model.ShowAllWorlds);
             var rejectedHeart = (ToggleButton)Tile(306).FindName("FavoriteToggle");
@@ -199,7 +215,7 @@ public sealed class DesktopTests
         var h = Samples(); var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
         try
         {
-            await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
+            await UntilAsync(() => main.Model.Tracked.Count == 30); await ResizeAsync(main, 1920, 1040);
             main.Model.ShowSettings = true; main.Model.ShowAllWorlds = true;
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
             WorldTile Tile(int id) => Children<WorldTile>(main).Single(t => t.IsVisible && t.DataContext is WorldCardModel w && w.Id == id);
@@ -241,8 +257,9 @@ public sealed class DesktopTests
             Assert.True(nativeAnimations, "Windows must report client-area animation enabled before WPF can exercise it.");
             SendMessageTimeout(new IntPtr(0xffff), 0x001A, new IntPtr(0x1043), IntPtr.Zero, 2, 1000, out _);
             await UntilAsync(() => SystemParameters.ClientAreaAnimation);
-            await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
+            await UntilAsync(() => main.Model.Tracked.Count == 30); await ResizeAsync(main, 1920, 1040);
             bool animate = Motion.CanAnimate(main); Assert.True(animate);
+            double originalY = ((ItemsControl)main.FindName("MemberCards")).TranslatePoint(new Point(), main).Y;
             main.Model.ShowSettings = true;
             if (animate)
             {
@@ -251,9 +268,14 @@ public sealed class DesktopTests
                 await Task.Delay(100);
                 Assert.True(Math.Abs(initialX - ((TranslateTransform)((FrameworkElement)sparks.Children[0]).RenderTransform).X) > 1);
                 Assert.InRange(((FrameworkElement)sparks.Children[0]).Opacity, 0, .899);
+                Assert.Equal(originalY, ((ItemsControl)main.FindName("MemberCards")).TranslatePoint(new Point(), main).Y);
+                Assert.All(sparks.Children.Cast<FrameworkElement>(), spark => Assert.Equal(52, Canvas.GetTop(spark)));
                 Preview(main, "navigation-sparks.png");
             }
-            main.Model.ShowSettings = false; main.Model.ShowSettings = true; // Reverse an in-flight transition without leaving stale clocks or particles.
+            main.Model.ShowSettings = false;
+            await Task.Delay(100);
+            Assert.All(((Canvas)main.FindName("GearSparks")).Children.Cast<FrameworkElement>(), spark => Assert.True(((TranslateTransform)spark.RenderTransform).X > 0));
+            main.Model.ShowSettings = true; // Reverse an in-flight transition without leaving stale clocks or particles.
             await UntilAsync(() => !main.IsNavigating);
             Assert.True(main.Model.ShowSettings); Assert.Empty(((Canvas)main.FindName("GearSparks")).Children);
             main.Model.SelectedSettingsTab = 1; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -294,7 +316,7 @@ public sealed class DesktopTests
         var h = Samples(); var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
         try
         {
-            await UntilAsync(() => main.Model.Tracked.Count == 25); await ResizeAsync(main, 1920, 1040);
+            await UntilAsync(() => main.Model.Tracked.Count == 30); await ResizeAsync(main, 1920, 1040);
             main.Model.OpenConnectionSettings.Execute(null); await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); main.UpdateLayout();
             var apply = (Button)main.FindName("ApplySettingsButton");
             foreach (string invalid in new[] { "", "0", "2001", "abc" }) { main.Model.Cutoff = invalid; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); Assert.False(main.Model.CanApplySettings); Assert.False(apply.IsEnabled); Assert.True(main.Model.HasCutoffError); }
@@ -328,7 +350,7 @@ public sealed class DesktopTests
         main.Show();
         try
         {
-            await UntilAsync(() => main.Model.Tracked.Count == 25);
+            await UntilAsync(() => main.Model.Tracked.Count == 30);
             main.WindowState = WindowState.Normal; main.Width = 720; main.Height = 360; main.UpdateLayout();
             var scroll = (ScrollViewer)main.FindName("PageScroll"); scroll.ScrollToVerticalOffset(240); main.UpdateLayout();
             Assert.True(scroll.ScrollableHeight > 0, "Use a viewport that actually exercises scrolling.");
@@ -398,7 +420,7 @@ public sealed class DesktopTests
             h.Probe.Handler = (host, _) => Task.FromResult(host == "supplied.example" ? new ProbeResult(ProbeStatus.TimedOut) : new ProbeResult(ProbeStatus.Success, 10));
             await h.Engine.RecheckAsync(); await h.Engine.SetFavoriteAsync(301, true);
             await UntilAsync(() => main.Model.Favorites.Count == 2);
-            Assert.Equal("Timeout", main.Model.Favorites.Single(w => w.Id == 301).Latency);
+            Assert.Equal("No reply", main.Model.Favorites.Single(w => w.Id == 301).Latency);
             Assert.Equal("", main.Model.AllWorlds.Single(w => w.Id == 302).CountryCode);
             Assert.False(main.Model.AllWorlds.Single(w => w.Id == 303).IsDangerous);
             Assert.False(main.Model.ConnectionHealthy); Assert.Contains("2 of 3", main.Model.ConnectionSummary);
@@ -430,6 +452,72 @@ public sealed class DesktopTests
         var result = await new IcmpLatencyProbe().ProbeAsync("127.0.0.1", CancellationToken.None);
         Assert.Equal(ProbeStatus.Success, result.Status);
     }
+    [Fact]
+    public Task FeedbackExpiresAndTabChangesCancelThePreviousMessage() => OnUiThreadAsync(async () =>
+    {
+        await using var h = Samples(); await h.Engine.StartAsync();
+        var clock = new ManualClock(); using var model = new DashboardViewModel(h.Engine, Dispatcher.CurrentDispatcher, clock);
+        _ = await clock.NextDelayAsync(); model.SelectedSettingsTab = 1;
+        model.ResetDefaults.Execute(null); await UntilAsync(() => model.HasFeedback);
+        var first = await clock.NextDelayAsync(); Assert.Equal(TimeSpan.FromSeconds(5), first.Delay);
+        clock.Advance(first); await UntilAsync(() => !model.HasFeedback);
+        model.ResetDefaults.Execute(null); await UntilAsync(() => model.HasFeedback);
+        var second = await clock.NextDelayAsync();
+        model.SelectedSettingsTab = 2; Assert.False(model.HasFeedback);
+        model.ResetDefaults.Execute(null); await UntilAsync(() => model.HasFeedback);
+        var third = await clock.NextDelayAsync(); clock.Advance(second);
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); Assert.True(model.HasFeedback);
+        clock.Advance(third); await UntilAsync(() => !model.HasFeedback);
+        h.Probe.Return(new ProbeResult(ProbeStatus.TimedOut, Diagnostic: new("ICMP", "127.0.0.1", "TimedOut")));
+        await h.Engine.RecheckAsync(); model.Refresh();
+        Assert.Contains("no ICMP reply", model.DiagnosticSummary); Assert.Contains("TimedOut", model.ConnectionDiagnostics);
+        Assert.DoesNotContain("offline", model.ConnectionSummary, StringComparison.OrdinalIgnoreCase);
+    });
+
+    [Fact]
+    public Task NativeFrameKeepsTheTaskbarClearAndCapturesMinimizeRestore() => OnUiThreadAsync(async () =>
+    {
+        var h = Samples(); var main = new MainWindow(h.Engine);
+        var animation = new AnimationInfo { Size = (uint)Marshal.SizeOf<AnimationInfo>() };
+        Assert.True(SystemParametersAnimation(0x0048, animation.Size, ref animation, 0));
+        var previous = animation;
+        try
+        {
+            animation.MinimizeAnimate = 1; Assert.True(SystemParametersAnimation(0x0049, animation.Size, ref animation, 2));
+            main.Show(); await UntilAsync(() => main.Model.Tracked.Count == 30);
+            var handle = new WindowInteropHelper(main).Handle;
+            Assert.Equal(0x00c00000, GetWindowLongPtr(handle, -16).ToInt64() & 0x00c00000);
+            Assert.Equal(0, DwmGetWindowAttribute(handle, 9, out var frame, Marshal.SizeOf<FrameRect>()));
+            var dpi = VisualTreeHelper.GetDpi(main); var work = SystemParameters.WorkArea;
+            Assert.True(frame.Bottom <= (work.Bottom * dpi.DpiScaleY) + 1, $"Visible frame bottom {frame.Bottom} must not cover taskbar at {work.Bottom * dpi.DpiScaleY}.");
+            DesktopPreview("desktop-taskbar-maximized.png");
+            SystemCommands.MinimizeWindow(main);
+            for (int i = 0; i < 8; i++) { await Task.Delay(40); DesktopPreview($"minimize-{i:00}.png"); }
+            await UntilAsync(() => main.WindowState == WindowState.Minimized);
+            SystemCommands.RestoreWindow(main);
+            for (int i = 0; i < 8; i++) { await Task.Delay(40); DesktopPreview($"restore-{i:00}.png"); }
+            await UntilAsync(() => main.WindowState == WindowState.Maximized);
+        }
+        finally
+        {
+            await CloseAsync(main); await h.DisposeAsync();
+            Assert.True(SystemParametersAnimation(0x0049, previous.Size, ref previous, 2));
+        }
+    });
+    private static void DesktopPreview(string name)
+    {
+        string directory = System.IO.Path.Combine(AppContext.BaseDirectory, "ui-preview"); System.IO.Directory.CreateDirectory(directory);
+        int width = (int)SystemParameters.PrimaryScreenWidth, height = (int)SystemParameters.PrimaryScreenHeight;
+        using var bitmap = new System.Drawing.Bitmap(width, height);
+        using (var graphics = System.Drawing.Graphics.FromImage(bitmap)) graphics.CopyFromScreen(0, 0, 0, 0, bitmap.Size);
+        bitmap.Save(System.IO.Path.Combine(directory, name), System.Drawing.Imaging.ImageFormat.Png);
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct AnimationInfo { public uint Size; public int MinimizeAnimate; }
+    [StructLayout(LayoutKind.Sequential)] private struct FrameRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SystemParametersAnimation(uint action, uint parameter, ref AnimationInfo value, uint flags);
+    [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out FrameRect value, int size);
+
     [StructLayout(LayoutKind.Sequential)] private struct Input { public uint Type; public InputUnion Data; }
     [StructLayout(LayoutKind.Explicit)] private struct InputUnion { [FieldOffset(0)] public MouseInput Mouse; }
     [StructLayout(LayoutKind.Sequential)] private struct MouseInput { public int X, Y; public uint Data, Flags, Time; public UIntPtr Extra; }

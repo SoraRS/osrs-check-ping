@@ -86,6 +86,16 @@ jobs:
           } finally {
             if (-not $app.HasExited) { $app.Kill() }
           }
+      - name: Investigate real world connection failures on Windows
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'validation/')
+        continue-on-error: true
+        run: dotnet run --project tools/OsrsWorldPing.Diagnostics --configuration Release -- artifacts/world-diagnostics.json
+      - name: Save connection investigation
+        if: always() && github.event_name == 'pull_request' && startsWith(github.head_ref, 'validation/')
+        uses: actions/upload-artifact@v7
+        with:
+          name: World-connection-diagnostics
+          path: artifacts/world-diagnostics.json
       - uses: actions/upload-artifact@v7
         id: executable
         with:

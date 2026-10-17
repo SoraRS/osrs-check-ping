@@ -53,6 +53,20 @@ public static class Motion
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation); scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
     }
 
+    public static readonly DependencyProperty MessageProperty = DependencyProperty.RegisterAttached("Message", typeof(string), typeof(Motion), new PropertyMetadata("", MessageChanged));
+    public static string GetMessage(DependencyObject view) => (string)view.GetValue(MessageProperty);
+    public static void SetMessage(DependencyObject view, string value) => view.SetValue(MessageProperty, value);
+    private static void MessageChanged(DependencyObject element, DependencyPropertyChangedEventArgs args)
+    {
+        if (element is not TextBlock text) return;
+        string value = (string?)args.NewValue ?? "";
+        if (value.Length > 0) text.Text = value;
+        if (!CanAnimate(text)) { text.BeginAnimation(UIElement.OpacityProperty, null); text.Opacity = value.Length > 0 ? 1 : 0; text.Text = value; return; }
+        var fade = new DoubleAnimation(value.Length > 0 ? 1 : 0, TimeSpan.FromMilliseconds(150));
+        fade.Completed += (_, _) => { if (GetMessage(text).Length == 0) text.Text = ""; };
+        text.BeginAnimation(UIElement.OpacityProperty, fade);
+    }
+
     public static readonly DependencyProperty PopOnCheckProperty = DependencyProperty.RegisterAttached("PopOnCheck", typeof(bool), typeof(Motion), new PropertyMetadata(false, AttachPop));
     public static bool GetPopOnCheck(DependencyObject element) => (bool)element.GetValue(PopOnCheckProperty);
     public static void SetPopOnCheck(DependencyObject element, bool value) => element.SetValue(PopOnCheckProperty, value);

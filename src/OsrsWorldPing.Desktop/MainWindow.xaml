@@ -1,101 +1,367 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:OsrsWorldPing.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" x:Class="OsrsWorldPing.Desktop.MainWindow" UseLayoutRounding="True" SnapsToDevicePixels="True" Title="OSRS World Ping" Width="1280" Height="850" MinWidth="420" MinHeight="320" WindowState="Maximized" Background="#151B1E" Foreground="#EFE8DA" FontFamily="Segoe UI" Icon="{StaticResource AppMark}" WindowStyle="None" ResizeMode="CanResize" Loaded="OnLoaded" Closing="OnClosing" StateChanged="OnStateChanged" SourceInitialized="OnSourceInitialized">
-  <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="36" ResizeBorderThickness="7" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/></shell:WindowChrome.WindowChrome>
-  <Window.InputBindings><KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettings}"/><KeyBinding Key="Escape" Command="{Binding BackToWorlds}"/></Window.InputBindings>
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:local="clr-namespace:OsrsWorldPing.Desktop" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="OsrsWorldPing.Desktop.MainWindow" UseLayoutRounding="True" SnapsToDevicePixels="True" Title="OSRS World Ping" Width="1280" Height="850" MinWidth="420" MinHeight="320" WindowState="Maximized" Background="#151B1E" Foreground="#EFE8DA" FontFamily="Segoe UI" Icon="{StaticResource AppMark}" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" Loaded="OnLoaded" Closing="OnClosing" StateChanged="OnStateChanged" SourceInitialized="OnSourceInitialized">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="36" ResizeBorderThickness="7" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+  </shell:WindowChrome.WindowChrome>
+  <Window.InputBindings>
+    <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettings}" />
+    <KeyBinding Key="Escape" Command="{Binding BackToWorlds}" />
+  </Window.InputBindings>
   <Grid>
-    <Image Source="Assets/observatory.png" Stretch="UniformToFill" Opacity="0.95" IsHitTestVisible="False"/>
-    <Rectangle IsHitTestVisible="False"><Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7A0F171A"/><GradientStop Offset="0.65" Color="#40131D20"/><GradientStop Offset="1" Color="#20131D20"/></LinearGradientBrush></Rectangle.Fill></Rectangle>
+    <Image Source="Assets/observatory.png" Stretch="UniformToFill" Opacity="0.95" IsHitTestVisible="False" />
+    <Rectangle IsHitTestVisible="False">
+      <Rectangle.Fill>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#7A0F171A" />
+          <GradientStop Offset="0.65" Color="#40131D20" />
+          <GradientStop Offset="1" Color="#20131D20" />
+        </LinearGradientBrush>
+      </Rectangle.Fill>
+    </Rectangle>
     <Grid>
-      <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="36" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
       <Grid x:Name="TitleBar">
-        <StackPanel Orientation="Horizontal" Margin="16,0" VerticalAlignment="Center"><Image Source="{StaticResource AppMark}" Width="19" Height="19"/><TextBlock Text="OSRS WORLD PING" FontSize="11" Foreground="#C6BDAA" VerticalAlignment="Center" Margin="9,0,0,0"/></StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="16,0" VerticalAlignment="Center">
+          <Image Source="{StaticResource AppMark}" Width="19" Height="19" />
+          <TextBlock Text="OSRS WORLD PING" FontSize="11" Foreground="#C6BDAA" VerticalAlignment="Center" Margin="9,0,0,0" />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-          <Button x:Name="MinimizeButton" Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="Minimize" Click="MinimizeClick"><Path Data="M0,0 L12,0" Stroke="#DACCB3" StrokeThickness="1" Width="12"/></Button>
-          <Button x:Name="MaximizeButton" Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState, StringFormat=Maximize or restore ({0})}" Click="MaximizeClick">
-            <Path x:Name="MaximizeIcon" Stroke="#DACCB3" StrokeThickness="1" Width="13" Height="13" Stretch="Uniform"><Path.Style><Style TargetType="Path"><Setter Property="Data" Value="M1,1 L12,1 L12,12 L1,12 Z"/><Style.Triggers><DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized"><Setter Property="Data" Value="M4,1 L13,1 L13,10 L10,10 M1,4 L10,4 L10,13 L1,13 Z"/></DataTrigger></Style.Triggers></Style></Path.Style></Path>
+          <Button x:Name="MinimizeButton" Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="Minimize" Click="MinimizeClick">
+            <Path Data="M0,0 L12,0" Stroke="#DACCB3" StrokeThickness="1" Width="12" />
           </Button>
-          <Button Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="Close" Click="CloseClick"><Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="#DACCB3" StrokeThickness="1" Width="11" Height="11"/></Button>
+          <Button x:Name="MaximizeButton" Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState, StringFormat=Maximize or restore ({0})}" Click="MaximizeClick">
+            <Path x:Name="MaximizeIcon" Stroke="#DACCB3" StrokeThickness="1" Width="13" Height="13" Stretch="Uniform">
+              <Path.Style>
+                <Style TargetType="Path">
+                  <Setter Property="Data" Value="M1,1 L12,1 L12,12 L1,12 Z" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                      <Setter Property="Data" Value="M4,1 L13,1 L13,10 L10,10 M1,4 L10,4 L10,13 L1,13 Z" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Path.Style>
+            </Path>
+          </Button>
+          <Button Style="{StaticResource IconButton}" Width="38" Padding="9" AutomationProperties.Name="Close" Click="CloseClick">
+            <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="#DACCB3" StrokeThickness="1" Width="11" Height="11" />
+          </Button>
         </StackPanel>
       </Grid>
       <Grid x:Name="PageFrame" Grid.Row="1" Margin="24,8,24,10" MaxWidth="1540" HorizontalAlignment="Stretch">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid x:Name="SharedHeader" Margin="0,0,0,12">
-          <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="72" />
+            <RowDefinition Height="0" />
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="460" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="460" />
+          </Grid.ColumnDefinitions>
+          <StackPanel x:Name="HeaderReadouts" Orientation="Horizontal" VerticalAlignment="Center">
             <Grid Width="64" Height="64" Margin="0,0,12,0">
               <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Padding="8" Command="{Binding ToggleSettings}" AutomationProperties.Name="Open or close settings" ToolTip="Settings (Ctrl+,); Esc returns to worlds" MouseEnter="GearEnter" MouseLeave="GearLeave">
-                <Path x:Name="Gear" Data="M9,0 L15,0 L16,4 L19,6 L23,5 L26,10 L23,13 L23,16 L26,19 L23,24 L19,23 L16,25 L15,29 L9,29 L8,25 L5,23 L1,24 L-2,19 L1,16 L1,13 L-2,10 L1,5 L5,6 L8,4 Z M17,14.5 A5,5 0 1 1 7,14.5 A5,5 0 1 1 17,14.5" Width="44" Height="44" Stretch="Uniform" Stroke="{StaticResource Gold}" StrokeThickness="0.65" RenderTransformOrigin="0.5,0.5">
-                  <Path.RenderTransform><RotateTransform/></Path.RenderTransform>
-                  <Path.Style><Style TargetType="Path"><Setter Property="Fill" Value="#69706D"/><Style.Triggers>
-                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=SettingsButton}" Value="True"><Setter Property="Fill" Value="{StaticResource Gold}"/></DataTrigger>
-                    <DataTrigger Binding="{Binding IsNavigating, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True"><Setter Property="Fill" Value="{StaticResource Gold}"/></DataTrigger>
-                  </Style.Triggers></Style></Path.Style>
+                <Path x:Name="Gear" Data="M9,0 L15,0 L16,4 L19,6 L23,5 L26,10 L23,13 L23,16 L26,19 L23,24 L19,23 L16,25 L15,29 L9,29 L8,25 L5,23 L1,24 L-2,19 L1,16 L1,13 L-2,10 L1,5 L5,6 L8,4 Z M17,14.5 A5,5 0 1 1 7,14.5 A5,5 0 1 1 17,14.5" Width="44" Height="44" Stretch="Uniform" Stroke="#837650" StrokeThickness="0.65" RenderTransformOrigin="0.5,0.5">
+                  <Path.RenderTransform>
+                    <RotateTransform />
+                  </Path.RenderTransform>
+                  <Path.Style>
+                    <Style TargetType="Path">
+                      <Setter Property="Fill" Value="#A34D5553" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=SettingsButton}" Value="True">
+                          <Setter Property="Fill" Value="{StaticResource Gold}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsNavigating, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                          <Setter Property="Fill" Value="{StaticResource Gold}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Path.Style>
                 </Path>
               </Button>
-              <Canvas x:Name="GearSparks" IsHitTestVisible="False"/>
-              <Ellipse Fill="#EF9B83" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,4,0" IsHitTestVisible="False" Visibility="{Binding HasNotice, Converter={StaticResource VisibleWhenTrue}}"/>
+              <Canvas x:Name="GearSparks" IsHitTestVisible="False" />
+              <Ellipse Fill="#EF9B83" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,4,0" IsHitTestVisible="False" Visibility="{Binding HasNotice, Converter={StaticResource VisibleWhenTrue}}" />
             </Grid>
             <StackPanel x:Name="Metrics" VerticalAlignment="Center">
-              <StackPanel Orientation="Horizontal"><TextBlock Text="BEST" Foreground="{StaticResource Muted}" FontSize="12" Width="62" VerticalAlignment="Center"/><TextBlock Text="{Binding BestConnection}" FontSize="18" Foreground="#A9DFBE"/></StackPanel>
-              <StackPanel Orientation="Horizontal" Margin="0,3,0,0"><TextBlock Text="WORLDS" Foreground="{StaticResource Muted}" FontSize="12" Width="62" VerticalAlignment="Center"/><TextBlock Text="{Binding LiveCount}" FontSize="18" Foreground="{StaticResource Gold}"/></StackPanel>
+              <WrapPanel>
+                <TextBlock Text="BEST" Foreground="{StaticResource Muted}" FontSize="12" Width="62" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding BestConnection}" FontSize="18" Foreground="#A9DFBE" />
+                <StackPanel x:Name="BestWorldDetails" Orientation="Horizontal" DataContext="{Binding BestWorld}" Visibility="{Binding DataContext.HasBestWorld, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource VisibleWhenTrue}}" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="{Binding AccessibleDescription}">
+                  <TextBlock Text="{Binding Id, StringFormat=World {0}}" Style="{StaticResource DangerText}" FontSize="12" Margin="0,0,8,0" />
+                  <local:FlagGlyph Country="{Binding CountryCode}" Width="20" Height="13" Margin="0,0,8,0" ToolTip="{Binding Region}" />
+                  <Grid Width="16" Height="16" Margin="0,0,5,0">
+                    <Image Source="{Binding ActivitySprite}" RenderOptions.BitmapScalingMode="NearestNeighbor" Visibility="{Binding HasActivitySprite, Converter={StaticResource VisibleWhenTrue}}" />
+                    <local:ActivityGlyph Kind="{Binding ActivityIcon}" Visibility="{Binding HasActivityFallback, Converter={StaticResource VisibleWhenTrue}}" />
+                  </Grid>
+                  <TextBlock Text="{Binding ActivityLabel}" FontSize="12" Foreground="{StaticResource ActivityInk}" MaxWidth="145" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </StackPanel>
+              </WrapPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                <TextBlock Text="WORLDS" Foreground="{StaticResource Muted}" FontSize="12" Width="62" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LiveCount}" FontSize="18" Foreground="{StaticResource Gold}" />
+              </StackPanel>
             </StackPanel>
           </StackPanel>
           <TabControl x:Name="SettingsTabs" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" SelectedIndex="{Binding SelectedSettingsTab}" SelectionChanged="SettingsTabChanged" Opacity="0" Visibility="Hidden" RenderTransformOrigin="0.5,0.5">
-            <TabControl.RenderTransform><TranslateTransform/></TabControl.RenderTransform>
-            <TabControl.Template><ControlTemplate TargetType="TabControl"><WrapPanel IsItemsHost="True" HorizontalAlignment="Center" KeyboardNavigation.TabNavigation="Local"/></ControlTemplate></TabControl.Template>
-            <TabItem Header="World tracking"><Border Height="12"/></TabItem>
+            <TabControl.RenderTransform>
+              <TranslateTransform />
+            </TabControl.RenderTransform>
+            <TabControl.Template>
+              <ControlTemplate TargetType="TabControl">
+                <WrapPanel IsItemsHost="True" HorizontalAlignment="Center" KeyboardNavigation.TabNavigation="Local" />
+              </ControlTemplate>
+            </TabControl.Template>
+            <TabItem Header="World tracking">
+              <Border Height="0" />
+            </TabItem>
             <TabItem Header="Application">
               <Border x:Name="ApplicationSheet" Background="#30121B20" CornerRadius="8" Padding="20,14" MaxWidth="760" HorizontalAlignment="Center">
                 <StackPanel>
-                  <TextBlock Text="Connection monitoring" Style="{StaticResource Heading}"/>
+                  <TextBlock Text="Connection monitoring" Style="{StaticResource Heading}" HorizontalAlignment="Center" />
+                  <WrapPanel Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Button x:Name="CheckConnectionButton" Command="{Binding CheckConnection}" IsEnabled="{Binding CanCheckConnection}" Padding="12,8" Margin="0,0,12,6">
+                      <StackPanel Orientation="Horizontal">
+                        <Path Data="M3,9 A8,8 0 1 1 4,18 M3,3 L3,9 L9,9" Stroke="{StaticResource Gold}" StrokeThickness="1.8" Width="17" Height="17" Stretch="Uniform" Margin="0,0,8,0" />
+                        <TextBlock Text="Check connection" />
+                      </StackPanel>
+                    </Button>
+                  </WrapPanel>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,0,8" HorizontalAlignment="Center" MinHeight="34">
+                    <Path x:Name="ConnectionCheckIcon" Width="14" Height="14" StrokeThickness="2" Stretch="Uniform" Margin="0,0,7,0">
+                      <Path.Style>
+                        <Style TargetType="Path">
+                          <Setter Property="Stroke" Value="#E3BD80" />
+                          <Setter Property="Data" Value="M10,1 L19,18 L1,18 Z M10,6 L10,11 M10,14 L10,15" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding ConnectionHealthy}" Value="True">
+                              <Setter Property="Stroke" Value="#A9DFBE" />
+                              <Setter Property="Data" Value="M2,9 L7,14 L18,2" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Snapshot.IsScanning}" Value="True">
+                              <Setter Property="Stroke" Value="{StaticResource Gold}" />
+                              <Setter Property="Data" Value="M3,9 A8,8 0 1 1 4,18 M3,3 L3,9 L9,9" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Path.Style>
+                    </Path>
+                    <TextBlock Text="{Binding ConnectionSummary}" TextWrapping="Wrap" MaxWidth="430" FontSize="12" Foreground="{StaticResource Muted}" />
+                  </StackPanel>
                   <WrapPanel HorizontalAlignment="Center">
-                    <StackPanel Width="230" Margin="0,0,20,14"><TextBlock Text="Acceptable latency (ms)" Style="{StaticResource Label}"/><TextBox x:Name="CutoffInput" Text="{Binding Cutoff, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Latency cutoff in milliseconds"/><TextBlock Text="{Binding CutoffError}" Style="{StaticResource ValidationMessage}" Visibility="{Binding HasCutoffError, Converter={StaticResource VisibleWhenTrue}}"/></StackPanel>
-                    <StackPanel Width="230" Margin="0,0,0,14"><TextBlock Text="Refresh interval (seconds)" Style="{StaticResource Label}"/><TextBox x:Name="IntervalInput" Text="{Binding Interval, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Refresh interval in seconds"/><TextBlock Text="{Binding IntervalError}" Style="{StaticResource ValidationMessage}" Visibility="{Binding HasIntervalError, Converter={StaticResource VisibleWhenTrue}}"/></StackPanel>
+                    <StackPanel Width="230" Margin="0,0,20,14">
+                      <TextBlock Text="Acceptable latency (ms)" Style="{StaticResource Label}" />
+                      <TextBox x:Name="CutoffInput" Text="{Binding Cutoff, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Latency cutoff in milliseconds" />
+                      <TextBlock Text="{Binding CutoffError}" Style="{StaticResource ValidationMessage}" Visibility="{Binding HasCutoffError, Converter={StaticResource VisibleWhenTrue}}" />
+                    </StackPanel>
+                    <StackPanel Width="230" Margin="0,0,0,14">
+                      <TextBlock Text="Refresh interval (seconds)" Style="{StaticResource Label}" />
+                      <TextBox x:Name="IntervalInput" Text="{Binding Interval, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Refresh interval in seconds" />
+                      <TextBlock Text="{Binding IntervalError}" Style="{StaticResource ValidationMessage}" Visibility="{Binding HasIntervalError, Converter={StaticResource VisibleWhenTrue}}" />
+                    </StackPanel>
                   </WrapPanel>
-                  <WrapPanel Margin="0,0,0,16" VerticalAlignment="Center"><Button x:Name="CheckConnectionButton" Command="{Binding CheckConnection}" IsEnabled="{Binding CanCheckConnection}" Padding="12,8" Margin="0,0,12,6"><StackPanel Orientation="Horizontal"><Path Data="M3,9 A8,8 0 1 1 4,18 M3,3 L3,9 L9,9" Stroke="{StaticResource Gold}" StrokeThickness="1.8" Width="17" Height="17" Stretch="Uniform" Margin="0,0,8,0"/><TextBlock Text="Check connection"/></StackPanel></Button>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6"><Path x:Name="ConnectionCheckIcon" Width="14" Height="14" StrokeThickness="2" Stretch="Uniform" Margin="0,0,7,0"><Path.Style><Style TargetType="Path"><Setter Property="Stroke" Value="#E3BD80"/><Setter Property="Data" Value="M10,1 L19,18 L1,18 Z M10,6 L10,11 M10,14 L10,15"/><Style.Triggers><DataTrigger Binding="{Binding ConnectionHealthy}" Value="True"><Setter Property="Stroke" Value="#A9DFBE"/><Setter Property="Data" Value="M2,9 L7,14 L18,2"/></DataTrigger><DataTrigger Binding="{Binding Snapshot.IsScanning}" Value="True"><Setter Property="Stroke" Value="{StaticResource Gold}"/><Setter Property="Data" Value="M3,9 A8,8 0 1 1 4,18 M3,3 L3,9 L9,9"/></DataTrigger></Style.Triggers></Style></Path.Style></Path><TextBlock Text="{Binding ConnectionSummary}" TextWrapping="Wrap" MaxWidth="420" FontSize="12" Foreground="{StaticResource Muted}"/></StackPanel>
+                  <TextBlock Text="Window &amp; tray" Style="{StaticResource Heading}" FontSize="23" Margin="0,0,0,12" HorizontalAlignment="Center" />
+                  <StackPanel HorizontalAlignment="Center" Margin="0,0,0,6">
+                    <CheckBox Content="Keep the window always on top" IsChecked="{Binding AlwaysOnTop}" Margin="0,0,0,8" />
+                    <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" Margin="0,0,0,8" />
+                    <CheckBox Content="Close to the system tray" IsChecked="{Binding CloseToTray}" Margin="0,0,0,14" />
+                  </StackPanel>
+                  <WrapPanel HorizontalAlignment="Center">
+                    <Button x:Name="ApplySettingsButton" Content="Apply settings" Command="{Binding ApplySettings}" IsEnabled="{Binding CanApplySettings}" Margin="0,0,10,0" />
+                    <Button x:Name="ResetDefaultsButton" IsEnabled="{Binding Snapshot.SettingsLoaded}" Content="Reset to default" Command="{Binding ResetDefaults}" />
                   </WrapPanel>
-                  <TextBlock Text="Window &amp; tray" Style="{StaticResource Heading}" FontSize="23" Margin="0,0,0,12"/>
-                  <CheckBox Content="Keep the window always on top" IsChecked="{Binding AlwaysOnTop}" Margin="0,0,0,8"/>
-                  <CheckBox Content="Minimize to the system tray" IsChecked="{Binding MinimizeToTray}" Margin="0,0,0,8"/>
-                  <CheckBox Content="Close to the system tray" IsChecked="{Binding CloseToTray}" Margin="0,0,0,14"/>
-                  <WrapPanel><Button x:Name="ApplySettingsButton" Content="Apply settings" Command="{Binding ApplySettings}" IsEnabled="{Binding CanApplySettings}" Margin="0,0,10,0"/><Button x:Name="ResetDefaultsButton" IsEnabled="{Binding Snapshot.SettingsLoaded}" Content="Reset to default" Command="{Binding ResetDefaults}"/></WrapPanel>
-                  <TextBlock Text="{Binding Feedback}" Foreground="{StaticResource Gold}" TextWrapping="Wrap" Margin="0,12,0,0" Visibility="{Binding HasFeedback, Converter={StaticResource VisibleWhenTrue}}"/>
-                  <TextBlock Text="{Binding Snapshot.Notice}" Foreground="#F0BB97" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding HasNotice, Converter={StaticResource VisibleWhenTrue}}"/>
+                  <Grid Height="44">
+                    <TextBlock local:Motion.Message="{Binding Feedback}" Foreground="{StaticResource Gold}" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0" TextAlignment="Center" />
+                  </Grid>
+                  <TextBlock Text="{Binding Snapshot.Notice}" Foreground="#F0BB97" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding HasNotice, Converter={StaticResource VisibleWhenTrue}}" />
+                  <Expander Header="Diagnostics" Margin="0,8,0,0">
+                    <StackPanel>
+                      <TextBlock Text="{Binding DiagnosticSummary}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,8,0,8" />
+                      <Button Content="Copy diagnostics" Command="{Binding CopyDiagnostics}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                  </Expander>
                 </StackPanel>
               </Border>
             </TabItem>
             <TabItem Header="About">
               <Border x:Name="AboutSheet" Background="#30121B20" CornerRadius="8" Padding="20,14" MaxWidth="760" HorizontalAlignment="Center">
                 <StackPanel>
-                  <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Image Source="{StaticResource AppMark}" Width="70" Height="70" Margin="0,0,16,0"/><StackPanel VerticalAlignment="Center"><TextBlock Text="OSRS" FontSize="14" Foreground="{StaticResource Gold}"/><TextBlock Text="World Ping" FontFamily="Georgia" FontSize="28"/><TextBlock Text="{Binding Version}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,5,0,0"/></StackPanel></StackPanel>
-                  <TextBlock Text="Description" Style="{StaticResource Heading}" FontSize="22"/>
-                  <TextBlock Text="An independent connection monitor for Old School RuneScape. Network latency is one part of the experience; these readings do not measure server ticks or guarantee in-game performance." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18"/>
-                  <TextBlock Text="Created by SoraRS" Style="{StaticResource Heading}" FontSize="22"/>
-                  <WrapPanel Margin="0,0,0,18"><Button Style="{StaticResource IconButton}" Padding="0,6,18,6" Tag="https://github.com/SoraRS" Click="OpenProfile" AutomationProperties.Name="SoraRS on GitHub"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource GitHubMark}" Fill="{StaticResource Ink}" Width="20" Height="20" Stretch="Uniform" Margin="0,0,8,0"/><TextBlock Text="GitHub"/></StackPanel></Button><Button Style="{StaticResource IconButton}" Padding="0,6,18,6" Tag="https://discord.com/users/845495758182678548" Click="OpenProfile" AutomationProperties.Name="SoraRS on Discord"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource DiscordMark}" Fill="#A7ADF2" Width="22" Height="20" Stretch="Uniform" Margin="0,0,8,0"/><TextBlock Text="Discord"/></StackPanel></Button></WrapPanel>
-                  <TextBlock Text="Privacy" Style="{StaticResource Heading}" FontSize="22"/>
-                  <TextBlock Text="Your preferences, favorites, window placement, and cached world catalogue stay under %LOCALAPPDATA%\OsrsWorldPing. Latency readings stay in memory. The app downloads Jagex's public catalogue and sends ICMP probes to its supplied hosts. It has no account login, analytics, or saved latency history. Network services receive ordinary connection traffic, including your IP address. Links open your browser only when clicked." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18"/>
-                  <TextBlock Text="Code signing &amp; Windows warnings" Style="{StaticResource Heading}" FontSize="22" TextWrapping="Wrap"/>
-                  <TextBlock Text="Testing builds may be unsigned. SignPath Foundation enrollment and provider approval are required for production signing. A valid publisher signature does not guarantee immediate SmartScreen reputation. Check a release's signature and checksum against its published information." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18"/>
-                  <WrapPanel Margin="0,0,0,18"><TextBlock Margin="0,0,20,6"><Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping" RequestNavigate="OpenLink">Project &amp; downloads</Hyperlink></TextBlock><TextBlock Margin="0,0,20,6"><Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping/issues" RequestNavigate="OpenLink">Report a problem</Hyperlink></TextBlock><TextBlock Margin="0,0,0,6"><Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping/blob/main/LICENSE" RequestNavigate="OpenLink">Apache 2.0 license</Hyperlink></TextBlock></WrapPanel>
-                  <TextBlock Text="Not affiliated with or endorsed by Jagex. Original observatory artwork created for this application. OSRS skill and boss sprites © Jagex Ltd.; sourced from RuneLite and the OSRS Wiki." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                    <Image Source="{StaticResource AppMark}" Width="70" Height="70" Margin="0,0,16,0" />
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="OSRS" FontSize="14" Foreground="{StaticResource Gold}" />
+                      <TextBlock Text="World Ping" FontFamily="Georgia" FontSize="28" />
+                      <TextBlock Text="{Binding Version}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,5,0,0" />
+                    </StackPanel>
+                  </StackPanel>
+                  <StackPanel HorizontalAlignment="Center" Margin="0,0,0,14">
+                    <TextBlock Text="Created by" Foreground="{StaticResource Muted}" FontSize="14" TextAlignment="Center" />
+                    <TextBlock Text="SoraRS" Foreground="{StaticResource Gold}" FontFamily="Georgia" FontSize="28" TextAlignment="Center" Margin="0,3,0,4" />
+                    <WrapPanel Margin="0" HorizontalAlignment="Center">
+                      <Button Style="{StaticResource IconButton}" Padding="8" Tag="https://github.com/SoraRS" Click="OpenProfile" AutomationProperties.Name="SoraRS on GitHub" Margin="4,0,4,0" ToolTip="SoraRS on GitHub">
+                        <StackPanel Orientation="Horizontal">
+                          <Path Data="{StaticResource GitHubMark}" Fill="{StaticResource Ink}" Width="20" Height="20" Stretch="Uniform" Margin="0" />
+                        </StackPanel>
+                      </Button>
+                      <Button Style="{StaticResource IconButton}" Padding="8" Tag="https://discord.com/users/845495758182678548" Click="OpenProfile" AutomationProperties.Name="SoraRS on Discord" Margin="4,0,4,0" ToolTip="SoraRS on Discord">
+                        <StackPanel Orientation="Horizontal">
+                          <Path Data="{StaticResource DiscordMark}" Fill="#A7ADF2" Width="22" Height="20" Stretch="Uniform" Margin="0" />
+                        </StackPanel>
+                      </Button>
+                    </WrapPanel>
+                  </StackPanel>
+                  <TextBlock Text="Description" Style="{StaticResource Heading}" FontSize="22" />
+                  <TextBlock Text="An independent connection monitor for Old School RuneScape. Network latency is one part of the experience; these readings do not measure server ticks or guarantee in-game performance." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
+                  <TextBlock Text="Privacy" Style="{StaticResource Heading}" FontSize="22" />
+                  <TextBlock Text="Your preferences, favorites, window placement, and cached world catalogue stay under %LOCALAPPDATA%\OsrsWorldPing. Latency readings stay in memory. The app downloads Jagex's public catalogue and sends ICMP probes to its supplied hosts. It has no account login, analytics, or saved latency history. Network services receive ordinary connection traffic, including your IP address. Links open your browser only when clicked." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
+                  <TextBlock Text="Code signing &amp; Windows warnings" Style="{StaticResource Heading}" FontSize="22" TextWrapping="Wrap" />
+                  <TextBlock Text="Testing builds may be unsigned. SignPath Foundation enrollment and provider approval are required for production signing. A valid publisher signature does not guarantee immediate SmartScreen reputation. Check a release's signature and checksum against its published information." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
+                  <WrapPanel Margin="0,0,0,18">
+                    <TextBlock Margin="0,0,20,6">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping" RequestNavigate="OpenLink">Project &amp; downloads</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,20,6">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping/issues" RequestNavigate="OpenLink">Report a problem</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,0,6">
+                      <Hyperlink NavigateUri="https://github.com/SoraRS/osrs-world-ping/blob/main/LICENSE" RequestNavigate="OpenLink">Apache 2.0 license</Hyperlink>
+                    </TextBlock>
+                  </WrapPanel>
+                  <TextBlock Text="Not affiliated with or endorsed by Jagex. Original observatory artwork created for this application. OSRS skill and boss sprites © Jagex Ltd.; sourced from RuneLite and the OSRS Wiki." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" />
                 </StackPanel>
               </Border>
             </TabItem>
           </TabControl>
         </Grid>
-        <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+        <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
           <StackPanel>
-            <Grid x:Name="SettingsReveal" Height="0" ClipToBounds="True" IsHitTestVisible="False"><Grid.RowDefinitions><RowDefinition Height="Auto"/></Grid.RowDefinitions><ContentPresenter x:Name="SettingsContent" Content="{Binding SelectedContent, ElementName=SettingsTabs}" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" SizeChanged="SettingsContentSizeChanged"><ContentPresenter.RenderTransform><TranslateTransform/></ContentPresenter.RenderTransform></ContentPresenter></Grid>
-            <TextBlock Text="{Binding FavoriteFeedback}" Foreground="{StaticResource Gold}" FontSize="12" TextWrapping="Wrap" Margin="10,0,10,10" Visibility="{Binding HasFavoriteFeedback, Converter={StaticResource VisibleWhenTrue}}"/>
-            <StackPanel Visibility="{Binding HasFavorites, Converter={StaticResource VisibleWhenTrue}}" Margin="0,4,0,8"><TextBlock Text="Favorites" Foreground="{StaticResource Gold}" FontSize="12" Margin="11,0,0,5"/><ItemsControl x:Name="FavoriteCards" ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource WorldCard}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl></StackPanel>
-            <ItemsControl x:Name="WorldCards" ItemsSource="{Binding Tracked}" ItemTemplate="{StaticResource WorldCard}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
-            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" Margin="12,48,12,24" MaxWidth="430"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasTracked}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="{Binding EmptyTitle}" FontFamily="Georgia" FontSize="25" Foreground="{StaticResource Gold}" TextAlignment="Center" TextWrapping="Wrap"/><TextBlock Text="{Binding EmptyDescription}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,12,0,18"/><Button Content="Open connection settings" Command="{Binding OpenConnectionSettings}" HorizontalAlignment="Center"/></StackPanel>
-            <ToggleButton x:Name="ShowAllButton" Style="{StaticResource RevealToggle}" IsChecked="{Binding ShowAllWorlds}" Visibility="{Binding ShowWorldTracking, Converter={StaticResource VisibleWhenTrue}}" AutomationProperties.Name="Show or hide all other worlds" Margin="0,15,0,12"><StackPanel><TextBlock Text="{Binding ShowAllLabel}" HorizontalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" FontSize="12"/><Path x:Name="ShowAllChevron" Data="M1,1 L8,8 L15,1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.6" Width="15" Height="9" Stretch="Uniform" Margin="0,6,0,0" RenderTransformOrigin="0.5,0.5"><Path.Style><Style TargetType="Path"><Setter Property="RenderTransform"><Setter.Value><RotateTransform/></Setter.Value></Setter><Style.Triggers><DataTrigger Binding="{Binding ShowAllWorlds}" Value="True"><Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Path.Style></Path></StackPanel></ToggleButton>
-            <ItemsControl x:Name="HiddenCards" ItemsSource="{Binding Hidden}" ItemTemplate="{StaticResource WorldCard}" Visibility="{Binding ShowHiddenWorlds, Converter={StaticResource VisibleWhenTrue}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
+            <Grid x:Name="SettingsReveal" Height="0" ClipToBounds="False" Panel.ZIndex="2" IsHitTestVisible="False">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <ContentPresenter x:Name="SettingsOutgoing" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" IsHitTestVisible="False">
+                <ContentPresenter.RenderTransform>
+                  <TranslateTransform />
+                </ContentPresenter.RenderTransform>
+              </ContentPresenter>
+              <ContentPresenter x:Name="SettingsContent" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" SizeChanged="SettingsContentSizeChanged">
+                <ContentPresenter.RenderTransform>
+                  <TranslateTransform />
+                </ContentPresenter.RenderTransform>
+              </ContentPresenter>
+            </Grid>
+            <TextBlock Height="28" local:Motion.Message="{Binding FavoriteFeedback}" Foreground="{StaticResource Gold}" FontSize="12" TextWrapping="Wrap" Margin="10,0,10,10" Opacity="0" />
+            <StackPanel Visibility="{Binding HasFavorites, Converter={StaticResource VisibleWhenTrue}}" Margin="0,4,0,8" MaxWidth="1080" HorizontalAlignment="Stretch">
+              <TextBlock Text="❤ Favorite" Foreground="{StaticResource Gold}" FontSize="12" Margin="11,0,0,5" />
+              <ItemsControl x:Name="FavoriteCards" ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource WorldCard}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <local:WorldColumnsPanel Columns="{Binding FavoriteColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </StackPanel>
+            <StackPanel MaxWidth="1080" HorizontalAlignment="Stretch" Margin="0,4,0,5" Visibility="{Binding HasMembers, Converter={StaticResource VisibleWhenTrue}}">
+              <TextBlock Text="★ Members" Foreground="{StaticResource Gold}" FontSize="12" Margin="9,0,0,5" />
+              <ItemsControl x:Name="MemberCards" ItemsSource="{Binding Members}" ItemTemplate="{StaticResource WorldCard}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <local:WorldColumnsPanel Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </StackPanel>
+            <StackPanel MaxWidth="1080" HorizontalAlignment="Stretch" Margin="0,4,0,5" Visibility="{Binding HasFreeToPlay, Converter={StaticResource VisibleWhenTrue}}">
+              <TextBlock Text="☆ Free to play" Foreground="{StaticResource Silver}" FontSize="12" Margin="9,0,0,5" />
+              <ItemsControl x:Name="FreeCards" ItemsSource="{Binding FreeToPlay}" ItemTemplate="{StaticResource WorldCard}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <local:WorldColumnsPanel Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </StackPanel>
+            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" Margin="12,48,12,24" MaxWidth="430">
+              <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasTracked}" Value="False">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </StackPanel.Style>
+              <TextBlock Text="{Binding EmptyTitle}" FontFamily="Georgia" FontSize="25" Foreground="{StaticResource Gold}" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding EmptyDescription}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,12,0,18" />
+              <Button Content="Open connection settings" Command="{Binding OpenConnectionSettings}" HorizontalAlignment="Center" />
+            </StackPanel>
+            <Border x:Name="TrackingControlHost" Opacity="0" Visibility="Hidden" IsHitTestVisible="False">
+              <Border.RenderTransform>
+                <TranslateTransform />
+              </Border.RenderTransform>
+              <ToggleButton x:Name="ShowAllButton" Style="{StaticResource RevealToggle}" IsChecked="{Binding ShowAllWorlds}" AutomationProperties.Name="Show or hide all other worlds" Margin="0,15,0,12">
+                <StackPanel>
+                  <TextBlock Text="{Binding ShowAllLabel}" HorizontalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" FontSize="12" />
+                  <Path x:Name="ShowAllChevron" Data="M1,1 L8,8 L15,1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.6" Width="15" Height="9" Stretch="Uniform" Margin="0,6,0,0" RenderTransformOrigin="0.5,0.5">
+                    <Path.Style>
+                      <Style TargetType="Path">
+                        <Setter Property="RenderTransform">
+                          <Setter.Value>
+                            <RotateTransform />
+                          </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding ShowAllWorlds}" Value="True">
+                            <Setter Property="RenderTransform">
+                              <Setter.Value>
+                                <RotateTransform Angle="180" />
+                              </Setter.Value>
+                            </Setter>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Path.Style>
+                  </Path>
+                </StackPanel>
+              </ToggleButton>
+            </Border>
+            <ItemsControl x:Name="HiddenCards" ItemsSource="{Binding Hidden}" ItemTemplate="{StaticResource WorldCard}" Visibility="{Binding ShowHiddenWorlds, Converter={StaticResource VisibleWhenTrue}}" MaxWidth="1080" HorizontalAlignment="Stretch">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <local:WorldColumnsPanel Columns="{Binding ColumnCount, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
           </StackPanel>
         </ScrollViewer>
-        <Grid x:Name="ReviewFooter" Grid.Row="2" Height="43" Margin="10,5,10,0" Visibility="{Binding ShowSettings, Converter={StaticResource VisibleWhenTrue}}"><Grid.RowDefinitions><RowDefinition Height="10"/><RowDefinition Height="*"/></Grid.RowDefinitions><ProgressBar x:Name="ReviewProgress" Minimum="0" Maximum="{Binding ScanMaximum}" Value="{Binding Snapshot.ScanCompleted}" Height="3" Foreground="{StaticResource Gold}" Background="#343A3B" ToolTip="{Binding ScanStatus}"><ProgressBar.Style><Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding Snapshot.IsScanning}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></ProgressBar.Style></ProgressBar><TextBlock Grid.Row="1" Text="{Binding WorldsUpdatedAt}" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="11" Foreground="{StaticResource Muted}"/></Grid>
+        <Grid x:Name="ReviewFooter" Grid.Row="2" Height="43" Margin="10,5,10,0" Opacity="{Binding ShowSettings, Converter={StaticResource BoolOpacity}}" IsHitTestVisible="{Binding ShowSettings}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="10" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <ProgressBar x:Name="ReviewProgress" Minimum="0" Maximum="{Binding ScanMaximum}" Value="{Binding Snapshot.ScanCompleted}" Height="3" Foreground="{StaticResource Gold}" Background="#343A3B" ToolTip="{Binding ScanStatus}">
+            <ProgressBar.Style>
+              <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                <Setter Property="Opacity" Value="0" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Snapshot.IsScanning}" Value="True">
+                    <Setter Property="Opacity" Value="1" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </ProgressBar.Style>
+          </ProgressBar>
+          <TextBlock Grid.Row="1" Text="{Binding WorldsUpdatedAt}" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="11" Foreground="{StaticResource Muted}" />
+        </Grid>
       </Grid>
     </Grid>
   </Grid>

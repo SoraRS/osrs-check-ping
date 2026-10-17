@@ -2,7 +2,7 @@ namespace OsrsWorldPing.Core;
 
 public sealed class MonitoringEngine : IAsyncDisposable
 {
-    public const int MaximumAutomaticWorlds = 25;
+    public const int MaximumAutomaticWorlds = 30;
     public const int MaximumFavoriteWorlds = 5;
     public static TimeSpan HiddenRecheckInterval => TimeSpan.FromMinutes(5);
 

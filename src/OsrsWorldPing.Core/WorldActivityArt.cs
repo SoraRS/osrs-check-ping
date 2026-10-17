@@ -8,6 +8,16 @@ public static class WorldActivityArt
         if (world is null) return null;
         string activity = world.Activity;
         bool Has(string name) => activity.Contains(name, StringComparison.OrdinalIgnoreCase);
+        var flags = (WorldFlags)world.Flags;
+        if ((flags & WorldFlags.Deadman) != 0 || Has("Deadman")) return "deadman";
+        if ((flags & WorldFlags.Seasonal) != 0 || Has("League")) return "league";
+        if ((flags & WorldFlags.Speedrunning) != 0 || Has("Speedrunning")) return "speedrunning";
+        if (Has("PvP Arena") || Has("LMS") || Has("Last Man Standing") || Has("Castle Wars") || Has("Clan Wars") ||
+            Has("Clan Recruitment") || Has("Games Room") || Has("Party Room") || Has("Mort'ton") ||
+            Has("Pest Control") || Has("Soul Wars") || Has("Barbarian Assault") || Has("Group ")) return "grouping";
+        if ((flags & (WorldFlags.Pvp | WorldFlags.HighRisk | WorldFlags.Bounty)) != 0 || Has("PvP") || Has("High Risk") ||
+            Has("Bounty Hunter") || Has("Wilderness PK")) return "pvp";
+        if (Has("Fresh Start")) return "quest";
         if (((WorldFlags)world.Flags & WorldFlags.SkillTotal) != 0 || Has("skill total")) return "overall";
         if (Has("Wintertodt")) return "wintertodt";
         if (Has("Tempoross")) return "tempoross";
