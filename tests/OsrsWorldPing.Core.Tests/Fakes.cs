@@ -36,8 +36,9 @@ internal sealed class MemoryStore : ISettingsStore
     public AppSettings Settings { get; set; } = new();
     public WorldCatalogue? Catalogue { get; set; }
     public Exception? SettingsReadError { get; set; }
+    public Task<AppSettings>? PendingSettings { get; set; }
     public bool FailWrites { get; set; }
-    public Task<AppSettings> LoadSettingsAsync(CancellationToken cancellationToken) => SettingsReadError is null
+    public Task<AppSettings> LoadSettingsAsync(CancellationToken cancellationToken) => PendingSettings is not null ? PendingSettings.WaitAsync(cancellationToken) : SettingsReadError is null
         ? Task.FromResult(Settings) : Task.FromException<AppSettings>(SettingsReadError);
     public Task SaveSettingsAsync(AppSettings settings, CancellationToken cancellationToken)
     {

@@ -11,7 +11,7 @@
     <AssemblyName>OsrsWorldPing</AssemblyName>
     <ApplicationIcon>Assets/app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <Description>Connection latency for Old School RuneScape worlds</Description>
   </PropertyGroup>
   <ItemGroup>

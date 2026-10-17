@@ -11,3 +11,5 @@ About links open in your default browser only when clicked. Code-signing traffic
 Fully exit the application and delete its data folder to remove its saved data. Deleting or renaming the executable removes the portable application. For questions, use the project's [issue tracker](https://github.com/SoraRS/osrs-world-ping/issues).
 
 When upgrading from OSRS Check Ping, the app imports missing preferences and catalogue files from `%LOCALAPPDATA%\OsrsCheckPing`. The previous files remain as a backup; newer files in the World Ping folder take precedence. No data is uploaded as part of that import.
+
+**Copy diagnostics** is an explicit clipboard action. It includes the app/Windows version, catalogue time, game-world hostnames and resolved game-server addresses, latest check times, and failure codes. It does not look up your public IP address or transmit the report. Sharing that clipboard content is your choice.

@@ -17,7 +17,9 @@ namespace OsrsWorldPing.Desktop;
 
 public partial class MainWindow : Window
 {
-    public static readonly DependencyProperty ColumnCountProperty = DependencyProperty.Register(nameof(ColumnCount), typeof(int), typeof(MainWindow), new PropertyMetadata(5));
+    public static readonly DependencyProperty ColumnCountProperty = DependencyProperty.Register(nameof(ColumnCount), typeof(int), typeof(MainWindow), new PropertyMetadata(3));
+    public static readonly DependencyProperty FavoriteColumnCountProperty = DependencyProperty.Register(nameof(FavoriteColumnCount), typeof(int), typeof(MainWindow), new PropertyMetadata(5));
+    public int FavoriteColumnCount { get => (int)GetValue(FavoriteColumnCountProperty); private set => SetValue(FavoriteColumnCountProperty, value); }
     public int ColumnCount { get => (int)GetValue(ColumnCountProperty); private set => SetValue(ColumnCountProperty, value); }
     public static readonly DependencyProperty IsNavigatingProperty = DependencyProperty.Register(nameof(IsNavigating), typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
     public bool IsNavigating { get => (bool)GetValue(IsNavigatingProperty); private set => SetValue(IsNavigatingProperty, value); }
@@ -28,7 +30,8 @@ public partial class MainWindow : Window
     private bool _exitRequested, _closing, _closed, _placementLoaded, _appliedTopmost, _ready;
     private HwndSource? _source;
     private bool _lastShowSettings;
-    private int _navigationVersion;
+    private int _navigationVersion, _trayTransitionVersion;
+    private double _contentTargetHeight, _gearRestAngle;
     public DashboardViewModel Model { get; }
 
     public MainWindow(MonitoringEngine engine)
@@ -47,12 +50,20 @@ public partial class MainWindow : Window
         _tray = new Forms.NotifyIcon { Text = "OSRS World Ping", Icon = _trayIcon, ContextMenuStrip = menu };
         _tray.DoubleClick += (_, _) => Dispatcher.Invoke(() => RestoreFromTray(false));
         SizeChanged += (_, _) => UpdateLayoutDensity();
+        SettingsTabs.SelectedIndex = 0;
+        SettingsContent.Content = ((TabItem)SettingsTabs.Items[0]).Content;
         _ready = true;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs args)
     {
         SystemParameters.StaticPropertyChanged += MotionPreferenceChanged;
+        // HwndSource invokes the newest hook first. Install after WindowChrome's own hook.
+        if (_source is not null)
+        {
+            _source.RemoveHook(WindowHook); _source.AddHook(WindowHook);
+            SetWindowPos(_source.Handle, IntPtr.Zero, 0, 0, 0, 0, 0x0020 | 0x0001 | 0x0002 | 0x0004 | 0x0010);
+        }
         UpdateLayoutDensity();
         Model.Refresh();
         try { await _engine.StartAsync(); }
@@ -96,28 +107,34 @@ public partial class MainWindow : Window
             Left = area.Left / dpi.DpiScaleX + Math.Clamp((placement.X - area.Left) / dpi.DpiScaleX, 0, Math.Max(0, availableWidth - width));
             Top = area.Top / dpi.DpiScaleY + Math.Clamp((placement.Y - area.Top) / dpi.DpiScaleY, 0, Math.Max(0, availableHeight - height));
         }
-        WindowState = WindowState.Maximized;
+        // Startup is already maximized in XAML. A late settings read must preserve
+        // a user-initiated minimize/restore rather than changing window state.
     }
 
     private void UpdateLayoutDensity()
     {
-        ColumnCount = Math.Clamp((int)(Math.Min(ActualWidth - 48, 1540) / 260), 1, 5);
-        bool narrow = ActualWidth < 1000;
-        double sideWidth = Math.Min(200, Math.Max(0, ActualWidth - 48) / 2);
+        ColumnCount = Math.Clamp((int)(Math.Min(ActualWidth - 48, 1080) / 280), 1, 3);
+        bool narrow = ActualWidth < 1400;
+        SharedHeader.RowDefinitions[1].Height = new GridLength(narrow ? 42 : 0);
+        SharedHeader.RowDefinitions[0].Height = new GridLength(ActualWidth < 740 ? 94 : 72);
+        Metrics.MaxWidth = Math.Max(180, ActualWidth - 130);
+        Grid.SetColumnSpan(HeaderReadouts, narrow ? 3 : 1);
+        FavoriteColumnCount = Math.Clamp((int)(Math.Min(ActualWidth - 48, 1080) / 200), 1, 5);
+        double sideWidth = Math.Min(460, Math.Max(0, ActualWidth - 48) / 2);
         SharedHeader.ColumnDefinitions[0].Width = SharedHeader.ColumnDefinitions[2].Width = new GridLength(sideWidth);
         Grid.SetRow(SettingsTabs, narrow ? 1 : 0);
         Grid.SetColumn(SettingsTabs, narrow ? 0 : 1);
         Grid.SetColumnSpan(SettingsTabs, narrow ? 3 : 1);
     }
 
-    private void GearEnter(object sender, MouseEventArgs args) => RotateGear(90);
-    private void GearLeave(object sender, MouseEventArgs args) => RotateGear(0);
+    private void GearEnter(object sender, MouseEventArgs args) => RotateGear(_gearRestAngle + 90);
+    private void GearLeave(object sender, MouseEventArgs args) => RotateGear(_gearRestAngle);
     private void RotateGear(double to)
     {
         if (IsNavigating) return;
         var rotation = (RotateTransform)Gear.RenderTransform;
         if (!Motion.CanAnimate(this)) { rotation.BeginAnimation(RotateTransform.AngleProperty, null); rotation.Angle = to; return; }
-        rotation.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(to, TimeSpan.FromMilliseconds(240))
+        rotation.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(to, TimeSpan.FromMilliseconds(360))
         { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
     }
 
@@ -128,34 +145,72 @@ public partial class MainWindow : Window
     }
     private void SettingsContentSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        if (_ready && Model.ShowSettings && !IsNavigating) SettingsReveal.Height = args.NewSize.Height;
+        if (_ready && Model.ShowSettings && !IsNavigating && Math.Abs(SettingsReveal.Height - args.NewSize.Height) > .5) NavigateSettings(resetScroll: false);
     }
-    private void NavigateSettings()
+    private void NavigateSettings(bool resetScroll = true)
     {
         int version = ++_navigationVersion;
         bool opening = Model.ShowSettings;
+        double initialHeight = SettingsReveal.ActualHeight;
         IsNavigating = true;
+        SettingsReveal.BeginAnimation(HeightProperty, null); SettingsReveal.Height = initialHeight;
+        object? target = opening ? ((TabItem)SettingsTabs.SelectedItem).Content : null;
+        object? previous = SettingsContent.Content;
+        double previousOpacity = SettingsContent.Opacity;
+        double previousOffset = ((TranslateTransform)SettingsContent.RenderTransform).Y;
+        bool changing = !ReferenceEquals(previous, target);
+        if (changing)
+        {
+            SettingsContent.Content = null;
+            SettingsOutgoing.Content = null;
+            SettingsOutgoing.Content = previous;
+            SettingsContent.Content = target;
+        }
         SettingsTabs.Visibility = Visibility.Visible;
         SettingsContent.Visibility = Visibility.Visible;
+        SettingsOutgoing.Visibility = Visibility.Visible;
         SettingsReveal.IsHitTestVisible = opening;
-        PageScroll.ScrollToTop(); // Deliberate navigation only; polling never changes the viewport.
+        if (resetScroll) PageScroll.ScrollToTop();
         SettingsContent.Measure(new Size(Math.Max(1, PageFrame.ActualWidth), double.PositiveInfinity));
-        double targetHeight = opening ? SettingsContent.DesiredSize.Height : 0;
+        _contentTargetHeight = opening ? SettingsContent.DesiredSize.Height : 0;
         if (!Motion.CanAnimate(this)) { StopNavigationMotion(); return; }
-        var duration = TimeSpan.FromMilliseconds(360);
+        var duration = TimeSpan.FromMilliseconds(600);
         var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
-        var reveal = new DoubleAnimation(SettingsReveal.ActualHeight, targetHeight, duration) { EasingFunction = easing };
+        var reveal = new DoubleAnimation(initialHeight, _contentTargetHeight, duration) { EasingFunction = easing };
         reveal.Completed += (_, _) => { if (version == _navigationVersion) FinishNavigation(); };
         SettingsReveal.BeginAnimation(HeightProperty, reveal);
-        SettingsContent.BeginAnimation(OpacityProperty, new DoubleAnimation(opening ? 1 : 0, duration));
-        ((TranslateTransform)SettingsContent.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
-            new DoubleAnimation(opening ? -14 : 0, opening ? 0 : -14, duration) { EasingFunction = easing });
+        double distance = Math.Max(120, PageScroll.ActualHeight);
+        if (changing)
+        {
+            SettingsOutgoing.BeginAnimation(OpacityProperty, new DoubleAnimation(previousOpacity, 0, TimeSpan.FromMilliseconds(240)));
+            ((TranslateTransform)SettingsOutgoing.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(previousOffset, distance, TimeSpan.FromMilliseconds(240)) { EasingFunction = easing });
+            SettingsContent.BeginAnimation(OpacityProperty, null); SettingsContent.Opacity = 0;
+            var incomingOffset = (TranslateTransform)SettingsContent.RenderTransform;
+            incomingOffset.BeginAnimation(TranslateTransform.YProperty, null); incomingOffset.Y = -distance;
+            SettingsContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(420)) { BeginTime = TimeSpan.FromMilliseconds(180) });
+            ((TranslateTransform)SettingsContent.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(-distance, 0, TimeSpan.FromMilliseconds(420)) { BeginTime = TimeSpan.FromMilliseconds(180), EasingFunction = easing });
+        }
         SettingsTabs.BeginAnimation(OpacityProperty, new DoubleAnimation(opening ? 1 : 0, duration));
         ((TranslateTransform)SettingsTabs.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
-            new DoubleAnimation(opening ? -8 : 0, opening ? 0 : -8, duration) { EasingFunction = easing });
+            new DoubleAnimation(opening ? -8 : 0, opening ? 0 : 8, duration) { EasingFunction = easing });
         var rotation = (RotateTransform)Gear.RenderTransform;
         rotation.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(rotation.Angle, rotation.Angle + (opening ? 240 : -240), duration) { EasingFunction = easing });
+        AnimateTrackingControl();
         EmitSparks(opening);
+    }
+    private void AnimateTrackingControl()
+    {
+        bool visible = Model.ShowWorldTracking;
+        TrackingControlHost.Visibility = Visibility.Visible;
+        TrackingControlHost.IsHitTestVisible = visible;
+        var offset = (TranslateTransform)TrackingControlHost.RenderTransform;
+        double baseY = TrackingControlHost.TranslatePoint(new Point(), PageScroll).Y - offset.Y;
+        double distance = Math.Max(80, PageScroll.ActualHeight - baseY + TrackingControlHost.ActualHeight);
+        TrackingControlHost.BeginAnimation(OpacityProperty, new DoubleAnimation(visible ? 1 : 0, TimeSpan.FromMilliseconds(600)));
+        offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(visible ? distance : offset.Y, visible ? 0 : distance, TimeSpan.FromMilliseconds(600))
+        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut } });
     }
     internal void StopNavigationMotion()
     {
@@ -167,34 +222,43 @@ public partial class MainWindow : Window
     {
         bool opening = Model.ShowSettings;
         SettingsReveal.BeginAnimation(HeightProperty, null);
-        SettingsReveal.Height = opening ? SettingsContent.DesiredSize.Height : 0;
+        SettingsReveal.Height = opening ? _contentTargetHeight : 0;
         SettingsContent.BeginAnimation(OpacityProperty, null); SettingsContent.Opacity = opening ? 1 : 0;
         SettingsTabs.BeginAnimation(OpacityProperty, null); SettingsTabs.Opacity = opening ? 1 : 0;
-        var contentOffset = (TranslateTransform)SettingsContent.RenderTransform;
-        contentOffset.BeginAnimation(TranslateTransform.YProperty, null); contentOffset.Y = 0;
-        var tabOffset = (TranslateTransform)SettingsTabs.RenderTransform;
-        tabOffset.BeginAnimation(TranslateTransform.YProperty, null); tabOffset.Y = 0;
+        var headerOffset = (TranslateTransform)SettingsTabs.RenderTransform;
+        headerOffset.BeginAnimation(TranslateTransform.YProperty, null); headerOffset.Y = 0;
+        foreach (var presenter in new[] { SettingsContent, SettingsOutgoing })
+        {
+            var offset = (TranslateTransform)presenter.RenderTransform;
+            offset.BeginAnimation(TranslateTransform.YProperty, null); offset.Y = 0;
+        }
+        SettingsOutgoing.BeginAnimation(OpacityProperty, null); SettingsOutgoing.Opacity = 0;
+        SettingsOutgoing.Content = null; SettingsOutgoing.Visibility = Visibility.Hidden;
         SettingsContent.Visibility = SettingsTabs.Visibility = opening ? Visibility.Visible : Visibility.Hidden;
         SettingsReveal.IsHitTestVisible = opening;
+        TrackingControlHost.BeginAnimation(OpacityProperty, null); TrackingControlHost.Opacity = Model.ShowWorldTracking ? 1 : 0;
+        TrackingControlHost.Visibility = Model.ShowWorldTracking ? Visibility.Visible : Visibility.Hidden;
+        TrackingControlHost.IsHitTestVisible = Model.ShowWorldTracking;
+        var toggleOffset = (TranslateTransform)TrackingControlHost.RenderTransform;
+        toggleOffset.BeginAnimation(TranslateTransform.YProperty, null); toggleOffset.Y = 0;
         GearSparks.Children.Clear(); IsNavigating = false;
         var rotation = (RotateTransform)Gear.RenderTransform;
-        rotation.BeginAnimation(RotateTransform.AngleProperty, null); rotation.Angle = SettingsButton.IsMouseOver ? 90 : 0;
+        double angle = rotation.Angle % 360;
+        rotation.BeginAnimation(RotateTransform.AngleProperty, null); rotation.Angle = angle;
+        _gearRestAngle = angle;
     }
     private void EmitSparks(bool opening)
     {
         GearSparks.Children.Clear();
         for (int i = 0; i < 12; i++)
         {
-            double angle = i * Math.PI * 2 / 12, reach = 22 + i % 4 * 7;
             var offset = new TranslateTransform();
             var spark = new Ellipse { Width = i % 3 == 0 ? 3 : 2, Height = i % 3 == 0 ? 3 : 2,
-                Fill = new SolidColorBrush(i % 3 == 0 ? Color.FromRgb(255, 233, 168) : Color.FromRgb(216, 181, 117)), RenderTransform = offset };
-            Canvas.SetLeft(spark, 31); Canvas.SetTop(spark, 31); GearSparks.Children.Add(spark);
-            var duration = TimeSpan.FromMilliseconds(320 + i % 3 * 20);
-            double edgeX = Math.Cos(angle) * 21, edgeY = Math.Sin(angle) * 21;
-            double x = Math.Cos(angle) * (reach + 21), y = Math.Sin(angle) * (reach + 21) + 12;
-            offset.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(opening ? edgeX : x, opening ? x : edgeX, duration));
-            offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(opening ? edgeY : y, opening ? y : edgeY, duration));
+                Fill = new SolidColorBrush(i % 3 == 0 ? Color.FromRgb(255, 233, 168) : Color.FromRgb(224, 188, 85)), RenderTransform = offset };
+            Canvas.SetLeft(spark, 31); Canvas.SetTop(spark, 52); GearSparks.Children.Add(spark);
+            var duration = TimeSpan.FromMilliseconds(420 + i % 4 * 50);
+            offset.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, (opening ? -1 : 1) * (35 + i * 5), duration));
+            offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, 4 + i % 5 * 10, duration) { AccelerationRatio = .6 });
             spark.BeginAnimation(OpacityProperty, new DoubleAnimation(.9, 0, duration));
         }
     }
@@ -208,14 +272,20 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 
-    private void OnStateChanged(object? sender, EventArgs args)
+    private async void OnStateChanged(object? sender, EventArgs args)
     {
-        if (_ready && !_closed && WindowState == WindowState.Minimized && Model.Snapshot.Settings.MinimizeToTray) HideToTray();
+        int version = ++_trayTransitionVersion;
+        if (!_ready || _closed || WindowState != WindowState.Minimized || !Model.Snapshot.Settings.MinimizeToTray) return;
+        _tray.Visible = true;
+        // Hide only after the native taskbar animation; hiding in WM_SIZE aborts DWM's transition.
+        if (SystemParameters.MinimizeAnimation) await Task.Delay(350);
+        if (!_closed && version == _trayTransitionVersion && WindowState == WindowState.Minimized) Hide();
     }
-    private void HideToTray() { _tray.Visible = true; Hide(); }
+    private void HideToTray() { ++_trayTransitionVersion; _tray.Visible = true; Hide(); }
     public void RestoreFromTray(bool settings)
     {
-        Show(); if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
+        ++_trayTransitionVersion;
+        Show(); if (WindowState == WindowState.Minimized) SystemCommands.RestoreWindow(this);
         _tray.Visible = false; Model.ShowSettings = settings; Activate();
     }
     public void RequestExit() { _exitRequested = true; Close(); }
@@ -261,6 +331,18 @@ public partial class MainWindow : Window
     }
     private IntPtr WindowHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        // Standard maximized windows retain an invisible resize border outside rcWork.
+        // WindowChrome otherwise paints the client across that border and beneath the taskbar.
+        if (message == 0x0083 && wParam != IntPtr.Zero && IsZoomed(hwnd))
+        {
+            // The proposed bounds may already be on a different monitor from the current HWND.
+            var proposed = Marshal.PtrToStructure<NativeRect>(lParam);
+            if (GetMonitorInfo(MonitorFromRect(ref proposed, 2), out var monitor))
+            {
+                Marshal.StructureToPtr(monitor.Work, lParam, false);
+                handled = true; return IntPtr.Zero;
+            }
+        }
         const int maxButton = 9;
         if (_ready && message == 0x0084 && WindowState != WindowState.Minimized && MaximizeButton.IsVisible)
         {
@@ -276,6 +358,14 @@ public partial class MainWindow : Window
         { handled = true; if (message == 0x00A2) ToggleMaximize(); }
         return IntPtr.Zero;
     }
+    [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public NativeRect Monitor, Work; public uint Flags; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsZoomed(IntPtr window);
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref NativeRect rectangle, uint flags);
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ReadMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    private static bool GetMonitorInfo(IntPtr handle, out MonitorInfo info)
+    { info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() }; return ReadMonitorInfo(handle, ref info); }
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);

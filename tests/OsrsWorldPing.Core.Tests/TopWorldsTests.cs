@@ -6,6 +6,7 @@ public sealed class TopWorldsTests
 {
     private static void Configure(Harness h, int count = 50)
     {
+        h.Store.Settings = new AppSettings { LatencyCutoffMs = 60 };
         h.Catalogue.Worlds = Enumerable.Range(301, count)
             .Select(id => new WorldInfo(id, 1, $"world-{id}.runescape.com", "-", 0, 100)).ToArray();
         h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, Id(host) - 300));
@@ -20,9 +21,9 @@ public sealed class TopWorldsTests
         Configure(h);
         h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, 351 - Id(host)));
         await h.Engine.StartAsync();
-        var ids = Enumerable.Range(326, 25).ToArray();
+        var ids = Enumerable.Range(321, 30).ToArray();
         Assert.Equal(ids, h.Engine.GetSnapshot().Tracked.Select(w => w.Id));
-        Assert.Equal(Enumerable.Range(1, 25).Reverse().Select(n => (long?)n),
+        Assert.Equal(Enumerable.Range(1, 30).Reverse().Select(n => (long?)n),
             h.Engine.GetSnapshot().Tracked.Select(w => w.LatestResult!.RoundTripMilliseconds));
         h.Probe.Return(new ProbeResult(ProbeStatus.Success, 30));
         await h.Engine.CheckTrackedWorldsAsync();
@@ -34,45 +35,45 @@ public sealed class TopWorldsTests
     {
         await using var h = new Harness();
         Configure(h);
-        h.Store.Settings = new AppSettings { FavoriteWorldIds = [301, 302, 303, 304, 305] };
+        h.Store.Settings = new AppSettings { LatencyCutoffMs = 60, FavoriteWorldIds = [301, 302, 303, 304, 305] };
         await h.Engine.StartAsync();
         var snapshot = h.Engine.GetSnapshot();
-        Assert.Equal(30, snapshot.LiveCount);
-        Assert.Equal(Enumerable.Range(306, 25), snapshot.Tracked.Select(w => w.Id));
-        Assert.Equal(30, snapshot.VisibleWorlds.Select(w => w.Id).Distinct().Count());
+        Assert.Equal(35, snapshot.LiveCount);
+        Assert.Equal(Enumerable.Range(306, 30), snapshot.Tracked.Select(w => w.Id));
+        Assert.Equal(35, snapshot.VisibleWorlds.Select(w => w.Id).Distinct().Count());
         h.Probe.Hosts.Clear();
         await h.Engine.CheckTrackedWorldsAsync();
-        Assert.Equal(30, h.Probe.Hosts.Distinct().Count());
+        Assert.Equal(35, h.Probe.Hosts.Distinct().Count());
     }
 
     [Fact]
-    public async Task DiscoveryShowsAndLiveProbesOnlyTwentyFiveFastestWorlds()
+    public async Task DiscoveryShowsAndLiveProbesOnlyThirtyFastestWorlds()
     {
         await using var h = new Harness();
         Configure(h);
         await h.Engine.StartAsync();
         var snapshot = h.Engine.GetSnapshot();
         Assert.Equal(50, h.Probe.Hosts.Count);
-        Assert.Equal(25, snapshot.LiveCount);
-        Assert.Equal(25, snapshot.HiddenCount);
-        Assert.Equal(Enumerable.Range(301, 25), snapshot.VisibleWorlds.Select(w => w.Id));
+        Assert.Equal(30, snapshot.LiveCount);
+        Assert.Equal(20, snapshot.HiddenCount);
+        Assert.Equal(Enumerable.Range(301, 30), snapshot.VisibleWorlds.Select(w => w.Id));
         h.Probe.Hosts.Clear();
         await h.Engine.CheckTrackedWorldsAsync();
-        Assert.Equal(Enumerable.Range(301, 25), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(Enumerable.Range(301, 30), h.Probe.Hosts.Select(Id).Order());
     }
 
     [Fact]
-    public async Task FavoritesIncludingUnavailableOnesHaveSlotsOutsideTwentyFiveWorldLimit()
+    public async Task FavoritesIncludingUnavailableOnesHaveSlotsOutsideThirtyWorldLimit()
     {
         await using var h = new Harness();
         Configure(h);
-        h.Store.Settings = new AppSettings { FavoriteWorldIds = [347, 348, 349, 350, 999] };
+        h.Store.Settings = new AppSettings { LatencyCutoffMs = 60, FavoriteWorldIds = [347, 348, 349, 350, 999] };
         await h.Engine.StartAsync();
         var snapshot = h.Engine.GetSnapshot();
-        Assert.Equal(29, snapshot.LiveCount);
-        Assert.Equal(30, snapshot.VisibleWorlds.Count);
+        Assert.Equal(34, snapshot.LiveCount);
+        Assert.Equal(35, snapshot.VisibleWorlds.Count);
         Assert.Equal(5, snapshot.Favorites.Count);
-        Assert.Equal(Enumerable.Range(301, 25), snapshot.Tracked.Select(w => w.Id));
+        Assert.Equal(Enumerable.Range(301, 30), snapshot.Tracked.Select(w => w.Id));
         h.Probe.Return(new ProbeResult(ProbeStatus.TimedOut));
         for (int i = 0; i < 12; i++) await h.Engine.CheckTrackedWorldsAsync();
         Assert.All(h.Engine.GetSnapshot().Favorites.Where(w => w.World is not null), w => Assert.True(w.IsTracked));
@@ -88,12 +89,12 @@ public sealed class TopWorldsTests
         h.Probe.Hosts.Clear();
         h.Probe.Return(new ProbeResult(ProbeStatus.Success, 0));
         await h.Engine.RecheckHiddenWorldsAsync();
-        Assert.Equal(Enumerable.Range(326, 25), h.Probe.Hosts.Select(Id).Order());
-        Assert.Equal(Enumerable.Range(326, 25), h.Engine.GetSnapshot().VisibleWorlds.Select(w => w.Id));
+        Assert.Equal(Enumerable.Range(331, 20), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(Enumerable.Range(301, 10).Concat(Enumerable.Range(331, 20)), h.Engine.GetSnapshot().VisibleWorlds.Select(w => w.Id));
         Assert.Equal(1, h.Catalogue.Calls);
         h.Probe.Hosts.Clear();
         await h.Engine.CheckTrackedWorldsAsync();
-        Assert.Equal(Enumerable.Range(326, 25), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(Enumerable.Range(301, 10).Concat(Enumerable.Range(331, 20)), h.Probe.Hosts.Select(Id).Order());
     }
 
     [Fact]
@@ -104,15 +105,15 @@ public sealed class TopWorldsTests
         await h.Engine.StartAsync();
         h.Probe.Return(new ProbeResult(ProbeStatus.TimedOut));
         await h.Engine.RecheckHiddenWorldsAsync();
-        Assert.Equal(Enumerable.Range(301, 25), h.Engine.GetSnapshot().VisibleWorlds.Select(w => w.Id));
-        Assert.All(h.Engine.GetSnapshot().Worlds.Where(w => w.Id > 325), w => Assert.False(w.AutomaticallyEligible));
+        Assert.Equal(Enumerable.Range(301, 30), h.Engine.GetSnapshot().VisibleWorlds.Select(w => w.Id));
+        Assert.All(h.Engine.GetSnapshot().Worlds.Where(w => w.Id > 330), w => Assert.False(w.AutomaticallyEligible));
     }
 
     [Fact]
     public async Task SchedulerLeavesHiddenWorldsAloneUntilFiveMinutesThenUpdatesSelection()
     {
         await using var h = new Harness();
-        Configure(h, 27);
+        Configure(h, 32);
         await h.Engine.StartAsync();
         h.Probe.Hosts.Clear();
         var request = await h.Clock.NextDelayAsync();
@@ -122,17 +123,17 @@ public sealed class TopWorldsTests
             request = await h.Clock.NextDelayAsync();
         }
         Assert.Equal(295, (h.Clock.UtcNow - new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
-        Assert.All(h.Probe.Hosts, host => Assert.True(Id(host) <= 325));
+        Assert.All(h.Probe.Hosts, host => Assert.True(Id(host) <= 330));
         h.Probe.Hosts.Clear();
-        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, Id(host) > 325 ? 0 : Id(host) - 300));
+        h.Probe.Handler = (host, _) => Task.FromResult(new ProbeResult(ProbeStatus.Success, Id(host) > 330 ? 0 : Id(host) - 300));
         h.Clock.Advance(request);
         _ = await h.Clock.NextDelayAsync();
-        Assert.Equal(27, h.Probe.Hosts.Count);
-        Assert.Equal(1, h.Probe.Hosts.Count(host => Id(host) == 326));
+        Assert.Equal(32, h.Probe.Hosts.Count);
+        Assert.Equal(1, h.Probe.Hosts.Count(host => Id(host) == 331));
         Assert.Equal(h.Clock.UtcNow.AddMinutes(5), h.Engine.GetSnapshot().NextHiddenRecheckAt);
-        Assert.True(h.World(326).IsTracked);
-        Assert.False(h.World(325).IsTracked);
-        Assert.Equal(25, h.Engine.GetSnapshot().LiveCount);
+        Assert.True(h.World(331).IsTracked);
+        Assert.False(h.World(330).IsTracked);
+        Assert.Equal(30, h.Engine.GetSnapshot().LiveCount);
         Assert.Equal(1, h.Catalogue.Calls);
     }
 
@@ -140,7 +141,7 @@ public sealed class TopWorldsTests
     public async Task SchedulerHonorsFiveMinuteDeadlineWhenLiveIntervalDoesNotDivideIt()
     {
         await using var h = new Harness();
-        Configure(h, 27);
+        Configure(h, 32);
         await h.Engine.StartAsync();
         var deadline = h.Engine.GetSnapshot().NextHiddenRecheckAt!.Value;
         await h.Engine.UpdatePreferencesAsync(60, 7, false, false, false);
@@ -171,7 +172,7 @@ public sealed class TopWorldsTests
         h.Probe.Hosts.Clear();
         h.Clock.Advance(request);
         _ = await h.Clock.NextDelayAsync();
-        Assert.Equal(Enumerable.Range(326, 25), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(Enumerable.Range(331, 20), h.Probe.Hosts.Select(Id).Order());
         Assert.Equal(h.Clock.UtcNow.AddMinutes(5), h.Engine.GetSnapshot().NextHiddenRecheckAt);
     }
 
@@ -179,15 +180,15 @@ public sealed class TopWorldsTests
     public async Task SavedTenMinuteIntervalStartsWithOnlyAHiddenReviewAtFiveMinutes()
     {
         await using var h = new Harness();
-        Configure(h); h.Store.Settings = new AppSettings { RefreshIntervalSeconds = 600 };
+        Configure(h); h.Store.Settings = new AppSettings { LatencyCutoffMs = 60, RefreshIntervalSeconds = 600 };
         await h.Engine.StartAsync();
         var initialReading = h.World(301).LastChecked;
         var request = await h.Clock.NextDelayAsync(); Assert.Equal(TimeSpan.FromMinutes(5), request.Delay);
         h.Probe.Hosts.Clear(); h.Clock.Advance(request);
         var next = await h.Clock.NextDelayAsync();
-        Assert.Equal(Enumerable.Range(326, 25), h.Probe.Hosts.Select(Id).Order());
+        Assert.Equal(Enumerable.Range(331, 20), h.Probe.Hosts.Select(Id).Order());
         Assert.Equal(initialReading, h.World(301).LastChecked);
-        Assert.Equal(h.Clock.UtcNow, h.World(326).LastChecked);
+        Assert.Equal(h.Clock.UtcNow, h.World(331).LastChecked);
         Assert.Equal(TimeSpan.FromMinutes(5), next.Delay);
     }
 
@@ -199,16 +200,16 @@ public sealed class TopWorldsTests
         await h.Engine.StartAsync();
         Assert.True(h.Engine.SetTracking(340, true));
         Assert.True(h.World(340).IsTracked);
-        Assert.False(h.World(325).IsTracked);
+        Assert.False(h.World(330).IsTracked);
         Assert.True(await h.Engine.SetFavoriteAsync(339, true));
-        Assert.Equal(26, h.Engine.GetSnapshot().LiveCount);
+        Assert.Equal(31, h.Engine.GetSnapshot().LiveCount);
         Assert.True(h.World(339).IsTracked);
         Assert.True(h.Engine.SetTracking(340, false));
         Assert.False(h.World(340).IsTracked);
         for (int id = 301; id < 340; id++)
         {
             h.Engine.SetTracking(id, true);
-            Assert.InRange(h.Engine.GetSnapshot().LiveCount, 0, 26);
+            Assert.InRange(h.Engine.GetSnapshot().LiveCount, 0, 31);
         }
         Assert.False(h.Engine.SetTracking(340, true));
     }
@@ -290,6 +291,6 @@ public sealed class TopWorldsTests
         h.Probe.Return(new ProbeResult(ProbeStatus.Success, 20));
         await h.Engine.RecheckHiddenWorldsAsync();
         Assert.Equal(50, h.Probe.Hosts.Count);
-        Assert.Equal(25, h.Engine.GetSnapshot().LiveCount);
+        Assert.Equal(30, h.Engine.GetSnapshot().LiveCount);
     }
 }

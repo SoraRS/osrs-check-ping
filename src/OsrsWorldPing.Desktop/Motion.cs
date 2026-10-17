@@ -16,6 +16,8 @@ public static class Motion
     {
         if ((bool)args.NewValue) return;
         if (element is WorldCardSurface surface) surface.ResetMotion();
+        if (element is TextBlock text && text.ReadLocalValue(MessageProperty) != DependencyProperty.UnsetValue)
+        { text.BeginAnimation(UIElement.OpacityProperty, null); text.Text = GetMessage(text); text.Opacity = text.Text.Length > 0 ? 1 : 0; }
         if (element is MainWindow window) window.StopNavigationMotion();
         if (element is FrameworkElement { RenderTransform: ScaleTransform scale })
         {
@@ -51,6 +53,20 @@ public static class Motion
         if (!CanAnimate(view)) { scale.BeginAnimation(ScaleTransform.ScaleXProperty, null); scale.BeginAnimation(ScaleTransform.ScaleYProperty, null); scale.ScaleX = scale.ScaleY = 1; return; }
         var animation = new DoubleAnimation(to, TimeSpan.FromMilliseconds(150)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation); scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
+    }
+
+    public static readonly DependencyProperty MessageProperty = DependencyProperty.RegisterAttached("Message", typeof(string), typeof(Motion), new PropertyMetadata("", MessageChanged));
+    public static string GetMessage(DependencyObject view) => (string)view.GetValue(MessageProperty);
+    public static void SetMessage(DependencyObject view, string value) => view.SetValue(MessageProperty, value);
+    private static void MessageChanged(DependencyObject element, DependencyPropertyChangedEventArgs args)
+    {
+        if (element is not TextBlock text) return;
+        string value = (string?)args.NewValue ?? "";
+        if (value.Length > 0) text.Text = value;
+        if (!CanAnimate(text)) { text.BeginAnimation(UIElement.OpacityProperty, null); text.Opacity = value.Length > 0 ? 1 : 0; text.Text = value; return; }
+        var fade = new DoubleAnimation(value.Length > 0 ? 1 : 0, TimeSpan.FromMilliseconds(150));
+        fade.Completed += (_, _) => { if (GetMessage(text).Length == 0) text.Text = ""; };
+        text.BeginAnimation(UIElement.OpacityProperty, fade);
     }
 
     public static readonly DependencyProperty PopOnCheckProperty = DependencyProperty.RegisterAttached("PopOnCheck", typeof(bool), typeof(Motion), new PropertyMetadata(false, AttachPop));
