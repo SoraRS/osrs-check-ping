@@ -135,7 +135,7 @@
                       </StackPanel>
                     </Button>
                   </WrapPanel>
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,0,8" HorizontalAlignment="Center" MinHeight="34">
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,0,8" HorizontalAlignment="Center" MinHeight="34" Opacity="{Binding HasConnectionFeedback, Converter={StaticResource BoolOpacity}}">
                     <Path x:Name="ConnectionCheckIcon" Width="14" Height="14" StrokeThickness="2" Stretch="Uniform" Margin="0,0,7,0">
                       <Path.Style>
                         <Style TargetType="Path">
@@ -221,7 +221,7 @@
                   <TextBlock Text="Description" Style="{StaticResource Heading}" FontSize="22" />
                   <TextBlock Text="An independent connection monitor for Old School RuneScape. Network latency is one part of the experience; these readings do not measure server ticks or guarantee in-game performance." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
                   <TextBlock Text="Privacy" Style="{StaticResource Heading}" FontSize="22" />
-                  <TextBlock Text="Your preferences, favorites, window placement, and cached world catalogue stay under %LOCALAPPDATA%\OsrsWorldPing. Latency readings stay in memory. The app downloads Jagex's public catalogue and sends ICMP probes to its supplied hosts. It has no account login, analytics, or saved latency history. Network services receive ordinary connection traffic, including your IP address. Links open your browser only when clicked." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
+                  <TextBlock Text="Your preferences, favorites, window placement, and cached world catalogue stay under %LOCALAPPDATA%\OsrsWorldPing. Latency readings stay in memory. The app downloads Jagex's public catalogue and sends ICMP probes to its supplied hosts. It has no account login, analytics, or automatic latency history. Copy diagnostics places current world checks on your clipboard only when you choose it. Network services receive ordinary connection traffic, including your IP address. Links open your browser only when clicked." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
                   <TextBlock Text="Code signing &amp; Windows warnings" Style="{StaticResource Heading}" FontSize="22" TextWrapping="Wrap" />
                   <TextBlock Text="Testing builds may be unsigned. SignPath Foundation enrollment and provider approval are required for production signing. A valid publisher signature does not guarantee immediate SmartScreen reputation. Check a release's signature and checksum against its published information." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,18" />
                   <WrapPanel Margin="0,0,0,18">
@@ -244,19 +244,18 @@
         <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
           <StackPanel>
             <Grid x:Name="SettingsReveal" Height="0" ClipToBounds="False" Panel.ZIndex="2" IsHitTestVisible="False">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-              </Grid.RowDefinitions>
-              <ContentPresenter x:Name="SettingsOutgoing" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" IsHitTestVisible="False">
-                <ContentPresenter.RenderTransform>
-                  <TranslateTransform />
-                </ContentPresenter.RenderTransform>
-              </ContentPresenter>
-              <ContentPresenter x:Name="SettingsContent" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" SizeChanged="SettingsContentSizeChanged">
-                <ContentPresenter.RenderTransform>
-                  <TranslateTransform />
-                </ContentPresenter.RenderTransform>
-              </ContentPresenter>
+              <Canvas>
+                <ContentPresenter x:Name="SettingsOutgoing" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" IsHitTestVisible="False" Width="{Binding ActualWidth, ElementName=PageFrame}">
+                  <ContentPresenter.RenderTransform>
+                    <TranslateTransform />
+                  </ContentPresenter.RenderTransform>
+                </ContentPresenter>
+                <ContentPresenter x:Name="SettingsContent" VerticalAlignment="Top" Opacity="0" Visibility="Hidden" SizeChanged="SettingsContentSizeChanged" Width="{Binding ActualWidth, ElementName=PageFrame}">
+                  <ContentPresenter.RenderTransform>
+                    <TranslateTransform />
+                  </ContentPresenter.RenderTransform>
+                </ContentPresenter>
+              </Canvas>
             </Grid>
             <TextBlock Height="28" local:Motion.Message="{Binding FavoriteFeedback}" Foreground="{StaticResource Gold}" FontSize="12" TextWrapping="Wrap" Margin="10,0,10,10" Opacity="0" />
             <StackPanel Visibility="{Binding HasFavorites, Converter={StaticResource VisibleWhenTrue}}" Margin="0,4,0,8" MaxWidth="1080" HorizontalAlignment="Stretch">

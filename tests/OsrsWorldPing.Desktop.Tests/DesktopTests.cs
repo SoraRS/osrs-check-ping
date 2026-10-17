@@ -468,6 +468,25 @@ public sealed class DesktopTests
         var result = await new IcmpLatencyProbe().ProbeAsync("127.0.0.1", CancellationToken.None);
         Assert.Equal(ProbeStatus.Success, result.Status);
     }
+    [Theory]
+    [InlineData(true)] [InlineData(false)]
+    public Task ThirtyWorldsOfEitherMembershipFitWithoutScrolling(bool members) => OnUiThreadAsync(async () =>
+    {
+        var h = Samples();
+        h.Catalogue.Worlds = h.Catalogue.Worlds.Select(w => w.Id > 305 ? w with { Flags = members ? 1u : 0u } : w).ToArray();
+        var main = new MainWindow(h.Engine); main.Show(); Motion.SetEnabled(main, false);
+        try
+        {
+            await UntilAsync(() => main.Model.Tracked.Count == 30); await ResizeAsync(main, 1920, 1040);
+            var cards = (ItemsControl)main.FindName(members ? "MemberCards" : "FreeCards");
+            Assert.Equal(30, cards.Items.Count); Assert.Equal(440, cards.ActualHeight);
+            Assert.False(members ? main.Model.HasFreeToPlay : main.Model.HasMembers);
+            Assert.True(((ScrollViewer)main.FindName("PageScroll")).ScrollableHeight < 1);
+            Preview(main, members ? "dashboard-all-members.png" : "dashboard-all-free.png");
+        }
+        finally { await CloseAsync(main); await h.DisposeAsync(); }
+    });
+
     [Fact]
     public Task FeedbackExpiresAndTabChangesCancelThePreviousMessage() => OnUiThreadAsync(async () =>
     {
